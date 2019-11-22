@@ -13,6 +13,10 @@ class BookRepository(private val bookDao: IBookDao) {
         insertAsyncTask(bookDao).execute(book)
     }
 
+    fun delete(book: Book) {
+        deleteAsyncTask(bookDao).execute(book)
+    }
+
     class insertAsyncTask: AsyncTask<Book, Void, Void> {
         val mAsyncTaskDao: IBookDao
 
@@ -24,7 +28,19 @@ class BookRepository(private val bookDao: IBookDao) {
             mAsyncTaskDao.insert(params[0])
             return null
         }
-        
+    }
+
+    class deleteAsyncTask: AsyncTask<Book, Void, Void> {
+        val mAsyncTaskDao: IBookDao
+
+        constructor(dao: IBookDao) {
+            mAsyncTaskDao = dao
+        }
+
+        override fun doInBackground(vararg params: Book): Void? {
+            mAsyncTaskDao.delete(params[0])
+            return null
+        }
     }
     
 }
