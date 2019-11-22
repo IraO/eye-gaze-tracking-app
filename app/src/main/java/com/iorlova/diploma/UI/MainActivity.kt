@@ -9,11 +9,11 @@ import android.os.Build
 import android.os.Bundle
 import android.os.VibrationEffect
 import android.os.Vibrator
-import androidx.appcompat.app.AppCompatActivity
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Observer
@@ -23,7 +23,6 @@ import androidx.recyclerview.widget.RecyclerView
 import com.iorlova.diploma.R
 import com.iorlova.diploma.Repository.Book
 import com.iorlova.diploma.ViewModel.BookViewModel
-
 import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity() {
@@ -117,7 +116,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun loadBook(book: Book) {
-        // TODO
+        val intent = Intent(applicationContext, ReadBookActivity::class.java)
+        intent.putExtra("BOOK_PATH", book.path)
+        startActivity(intent)
     }
 
     fun removeBook(position: Int) {
@@ -143,7 +144,8 @@ class MainActivity : AppCompatActivity() {
 
         if (requestCode == 1 && resultCode == Activity.RESULT_OK) {
             var path = data!!.dataString
-            if (path!!.endsWith(".rtf") || path!!.endsWith(".pdf")) {
+            if (path!!.endsWith(".rtf") || path!!.endsWith(".pdf") ||
+                path!!.endsWith(".txt")) {
                 path = path.substringAfterLast(":")
                 val filename: String = path.substringAfterLast("/")
                 val format: String  = filename.substringAfterLast(".")
