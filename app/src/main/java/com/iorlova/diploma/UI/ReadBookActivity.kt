@@ -2,13 +2,12 @@ package com.iorlova.diploma.UI
 
 import android.content.Intent
 import android.graphics.Point
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.text.TextPaint
 import android.util.Log
 import android.view.View
 import android.widget.Toast
-import androidx.core.view.ViewCompat
+import androidx.appcompat.app.AppCompatActivity
 import androidx.viewpager.widget.ViewPager
 import com.iorlova.diploma.R
 import com.iorlova.diploma.UI.PageSplitter.PageSplitter
@@ -46,6 +45,7 @@ class ReadBookActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_read_book)
+
         pagesView = findViewById(R.id.pages)
         val display = windowManager.defaultDisplay
         val size = Point()
@@ -75,14 +75,15 @@ class ReadBookActivity : AppCompatActivity() {
             Toast.makeText(
                 applicationContext,
                 R.string.invalid_path,
-                Toast.LENGTH_LONG).show()
+                Toast.LENGTH_LONG
+            ).show()
 
             val intent = Intent(applicationContext, MainActivity::class.java)
             startActivity(intent)
         }
     }
 
-    private fun extractRTF(textRTF: String): String{
+    private fun extractRTF(textRTF: String): String {
         var text = ""
         val stream = ByteArrayInputStream(textRTF.toByteArray(StandardCharsets.UTF_8))
 

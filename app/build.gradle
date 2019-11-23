@@ -50,14 +50,12 @@ dependencies {
     kapt "androidx.lifecycle:lifecycle-compiler:$lifecycle_version"
     androidTestImplementation "androidx.arch.core:core-testing:$androidx_arch_version"
 
-
     // ViewModel Kotlin support
     implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycle_version"
 
-
     //RTF Extractor
     implementation 'com.github.joniles:rtfparserkit:1.13.0'
-    
+
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test.ext:junit:1.1.0'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'

@@ -45,6 +45,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        indeterminateBar.visibility = View.INVISIBLE
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -61,7 +66,7 @@ class MainActivity : AppCompatActivity() {
         })
 
         recyclerView.addOnItemTouchListener(
-            RecyclerItemListener (
+            RecyclerItemListener(
                 this,
                 recyclerView,
                 object : RecyclerItemListener.RecyclerTouchListener {
@@ -118,6 +123,7 @@ class MainActivity : AppCompatActivity() {
     fun loadBook(book: Book) {
         val intent = Intent(applicationContext, ReadBookActivity::class.java)
         intent.putExtra("BOOK_PATH", book.path)
+        indeterminateBar.visibility = View.VISIBLE
         startActivity(intent)
     }
 
@@ -126,13 +132,11 @@ class MainActivity : AppCompatActivity() {
 
         builder.setTitle("Confirm")
         builder.setMessage("Are you sure you want to delete?")
-        builder.setPositiveButton("YES") {
-            dialog, which ->
-                val book = bookViewModel.allBooks.value!![position]
-                bookViewModel.delete(book)
+        builder.setPositiveButton("YES") { dialog, which ->
+            val book = bookViewModel.allBooks.value!![position]
+            bookViewModel.delete(book)
         }
-        builder.setNegativeButton("NO") {
-            dialog, which ->
+        builder.setNegativeButton("NO") { dialog, which ->
             dialog.dismiss()
         }
         val alert = builder.create()
@@ -145,26 +149,28 @@ class MainActivity : AppCompatActivity() {
         if (requestCode == 1 && resultCode == Activity.RESULT_OK) {
             var path = data!!.dataString
             if (path!!.endsWith(".rtf") || path!!.endsWith(".pdf") ||
-                path!!.endsWith(".txt")) {
+                path!!.endsWith(".txt")
+            ) {
                 path = path.substringAfterLast(":")
                 val filename: String = path.substringAfterLast("/")
-                val format: String  = filename.substringAfterLast(".")
+                val format: String = filename.substringAfterLast(".")
                 val book = Book(name = filename, path = path, format = format)
 
                 bookViewModel.insert(book)
                 loadBook(book)
-            }
-            else {
+            } else {
                 Toast.makeText(
                     applicationContext,
                     R.string.invalid_format,
-                    Toast.LENGTH_LONG).show()
+                    Toast.LENGTH_LONG
+                ).show()
             }
         } else {
             Toast.makeText(
                 applicationContext,
                 R.string.invalid_path,
-                Toast.LENGTH_LONG).show()
+                Toast.LENGTH_LONG
+            ).show()
         }
     }
 
