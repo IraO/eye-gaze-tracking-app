@@ -30,4 +30,15 @@
         android:layout_margin="@dimen/fab_margin"
         app:srcCompat="@drawable/fab_icon" />
 
+    <ProgressBar
+        android:id="@+id/indeterminateBar"
+        android:layout_width="match_parent"
+        android:layout_height="227dp"
+        android:layout_centerHorizontal="true"
+        android:layout_centerVertical="true"
+        android:visibility="invisible"
+        android:elevation="10dp"
+        android:minWidth="50dp"
+        android:minHeight="50dp" />
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
