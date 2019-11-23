@@ -20,7 +20,7 @@
 
     </com.google.android.material.appbar.AppBarLayout>
 
-    <include layout="@layout/content_main" />
+    <include android:id="@+id/include" layout="@layout/content_main" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab"
@@ -32,13 +32,12 @@
 
     <ProgressBar
         android:id="@+id/indeterminateBar"
-        android:layout_width="match_parent"
-        android:layout_height="227dp"
-        android:layout_centerHorizontal="true"
-        android:layout_centerVertical="true"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:minWidth="70dp"
+        android:minHeight="70dp"
         android:visibility="invisible"
-        android:elevation="10dp"
-        android:minWidth="50dp"
-        android:minHeight="50dp" />
+        app:layout_anchor="@+id/include"
+        app:layout_anchorGravity="center" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
