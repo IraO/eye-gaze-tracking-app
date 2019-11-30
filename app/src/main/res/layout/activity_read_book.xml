@@ -3,11 +3,19 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:paddingLeft="@dimen/activity_horizontal_margin"
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
     android:paddingBottom="@dimen/activity_vertical_margin"
     tools:context="com.iorlova.diploma.UI.ReadBookActivity">
+
+    <org.opencv.android.JavaCameraView
+        android:id="@+id/cameraViewBook"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:camera_id="front"
+        app:show_fps="true" />
 
     <androidx.viewpager.widget.ViewPager
         android:id="@+id/pages"
@@ -15,6 +23,8 @@
         android:layout_height="match_parent"
         android:layout_marginTop="10dp"
         android:layout_marginBottom="10dp"
-        android:overScrollMode="never"/>
+        android:overScrollMode="never">
+
+    </androidx.viewpager.widget.ViewPager>
 
 </RelativeLayout>

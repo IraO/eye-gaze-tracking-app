@@ -56,6 +56,9 @@ dependencies {
     //RTF Extractor
     implementation 'com.github.joniles:rtfparserkit:1.13.0'
 
+    // OpenCV
+    implementation project(':openCVLibrary341')
+
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test.ext:junit:1.1.0'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
