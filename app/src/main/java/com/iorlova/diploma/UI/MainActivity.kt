@@ -113,10 +113,12 @@ class MainActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        return when (item.itemId) {
-            R.id.action_settings -> true
-            else -> super.onOptionsItemSelected(item)
+        // as you specify a parent activity in AndroidManifest.raw.
+        if (item.itemId == R.id.action_test_eye_detection) {
+            startActivity(Intent(this, TestEyeDetection::class.java))
+            return true
+        } else {
+            return super.onOptionsItemSelected(item)
         }
     }
 
