@@ -12,7 +12,6 @@ import android.os.Vibrator
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -23,10 +22,17 @@ import androidx.recyclerview.widget.RecyclerView
 import com.iorlova.diploma.R
 import com.iorlova.diploma.Repository.Book
 import com.iorlova.diploma.ViewModel.BookViewModel
+import com.jaiselrahman.filepicker.activity.FilePickerActivity
+import com.jaiselrahman.filepicker.config.Configurations
+import com.jaiselrahman.filepicker.model.MediaFile
 import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity() {
-    internal val REQUEST_PERMISSION = 1
+
+    companion object {
+        internal const val REQUEST_PERMISSION = 1
+        internal const val FILE_REQUEST_CODE = 1
+    }
 
     private lateinit var bookViewModel: BookViewModel
 
@@ -71,13 +77,13 @@ class MainActivity : AppCompatActivity() {
                 recyclerView,
                 object : RecyclerItemListener.RecyclerTouchListener {
                     override
-                    fun onClickItem(v: View, position: Int) {
+                    fun onClickItem(view: View, position: Int) {
                         val book = bookViewModel.allBooks.value!![position]
                         loadBook(book)
                     }
 
                     override
-                    fun onLongClickItem(v: View, position: Int) {
+                    fun onLongClickItem(view: View, position: Int) {
                         val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
                         // Vibrate for 500 milliseconds
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -95,14 +101,20 @@ class MainActivity : AppCompatActivity() {
                     }
                 })
         )
-        fab.setOnClickListener { view ->
-            val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
-            intent.addCategory(Intent.CATEGORY_OPENABLE)
-            intent.type = "*/*"
-            startActivityForResult(intent, 1)
+        fab.setOnClickListener {
+            val intent = Intent(this, FilePickerActivity::class.java)
+            intent.putExtra(FilePickerActivity.CONFIGS, Configurations.Builder()
+                            .setSuffixes("rtf", "pdf", "txt")
+                            .setSingleChoiceMode(true)
+                            .setShowFiles(true)
+                            .setShowImages(false)
+                            .setShowVideos(false)
+                            .setShowAudios(false)
+                            .build()
+            )
+            startActivityForResult(intent, FILE_REQUEST_CODE)
         }
     }
-
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -114,11 +126,11 @@ class MainActivity : AppCompatActivity() {
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.raw.
-        if (item.itemId == R.id.action_test_eye_detection) {
+        return if (item.itemId == R.id.action_test_eye_detection) {
             startActivity(Intent(this, TestEyeDetection::class.java))
-            return true
+            true
         } else {
-            return super.onOptionsItemSelected(item)
+            super.onOptionsItemSelected(item)
         }
     }
 
@@ -148,31 +160,15 @@ class MainActivity : AppCompatActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
 
-        if (requestCode == 1 && resultCode == Activity.RESULT_OK) {
-            var path = data!!.dataString
-            if (path!!.endsWith(".rtf") || path!!.endsWith(".pdf") ||
-                path!!.endsWith(".txt")
-            ) {
-                path = path.substringAfterLast(":")
-                val filename: String = path.substringAfterLast("/")
-                val format: String = filename.substringAfterLast(".")
-                val book = Book(name = filename, path = path, format = format)
+        if (requestCode == FILE_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
+            val files: ArrayList<MediaFile> = data!!.getParcelableArrayListExtra(FilePickerActivity.MEDIA_FILES)
+            val filePath = files[0].path
+            val fileName: String = filePath!!.substringAfterLast("/")
+            val fileFormat: String = fileName.substringAfterLast(".")
+            val book = Book(name = fileName, path = filePath, format = fileFormat)
 
-                bookViewModel.insert(book)
-                loadBook(book)
-            } else {
-                Toast.makeText(
-                    applicationContext,
-                    R.string.invalid_format,
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-        } else {
-            Toast.makeText(
-                applicationContext,
-                R.string.invalid_path,
-                Toast.LENGTH_LONG
-            ).show()
+            bookViewModel.insert(book)
+            loadBook(book)
         }
     }
 
