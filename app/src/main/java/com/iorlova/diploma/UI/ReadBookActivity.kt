@@ -33,20 +33,20 @@ import java.nio.charset.StandardCharsets
 import kotlin.math.round
 
 class ReadBookActivity : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewListener2 {
-    private lateinit var pagesView: ViewPager
 
-    private val PERMISSION_REQUEST_CODE = 200
+    companion object {
+        private const val PERMISSION_REQUEST_CODE = 200
+    }
 
     lateinit var cameraBridgeViewBase: CameraBridgeViewBase
-    private lateinit var loader: BaseLoaderCallback
-
     lateinit var mRgba: Mat
     lateinit var mGray: Mat
 
+    private val openCVCamera: OpenCVCamera = OpenCVCamera()
     private val mRelativeFaceSize = 0.2f
     private var mAbsoluteFaceSize = 0.0
-
-    private val openCVCamera: OpenCVCamera = OpenCVCamera()
+    private lateinit var loader: BaseLoaderCallback
+    private lateinit var pagesView: ViewPager
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
@@ -101,7 +101,7 @@ class ReadBookActivity : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewL
         } else {
             Toast.makeText(
                 applicationContext,
-                R.string.invalid_path,
+                R.string.invalid_format,
                 Toast.LENGTH_LONG
             ).show()
 
@@ -116,20 +116,12 @@ class ReadBookActivity : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewL
 
         if (ContextCompat.checkSelfPermission(
                 applicationContext,
-                Manifest.permission.CAMERA
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            if (ActivityCompat.shouldShowRequestPermissionRationale(
-                    this,
-                    Manifest.permission.CAMERA
-                )
-            ) {
-            } else {
+                Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            if (!ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.CAMERA)) {
                 ActivityCompat.requestPermissions(
                     this,
                     arrayOf(Manifest.permission.CAMERA),
-                    PERMISSION_REQUEST_CODE
-                )
+                    PERMISSION_REQUEST_CODE)
             }
         }
 
@@ -165,8 +157,8 @@ class ReadBookActivity : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewL
     }
 
     private fun readFile(fileName: String): String? {
-        var line: String? = null
         val TAG = "PAGE_SPLITTER"
+        var line: String? = null
 
         try {
             val fileInputStream =
@@ -245,8 +237,6 @@ class ReadBookActivity : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewL
 
     override fun onDestroy() {
         super.onDestroy()
-        if (cameraBridgeViewBase != null) {
-            cameraBridgeViewBase.disableView()
-        }
+        cameraBridgeViewBase.disableView()
     }
 }
