@@ -53,6 +53,9 @@ dependencies {
     // ViewModel Kotlin support
     implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycle_version"
 
+    // PDF Extractor
+    implementation  'com.github.barteksc:android-pdf-viewer:1.6.0'
+
     //RTF Extractor
     implementation 'com.github.joniles:rtfparserkit:1.13.0'
 
