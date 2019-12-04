@@ -6,7 +6,7 @@ import android.os.Bundle
 import android.view.View
 import androidx.lifecycle.ViewModelProviders
 import com.github.barteksc.pdfviewer.PDFView
-import com.github.barteksc.pdfviewer.listener.OnPageChangeListener
+import com.github.barteksc.pdfviewer.listener.OnPageScrollListener
 import com.iorlova.diploma.R
 import com.iorlova.diploma.ViewModel.BookViewModel
 import java.io.File
@@ -53,14 +53,17 @@ class PdfExtractor : AppCompatActivity() {
             .enableSwipe(true) // allows to block changing pages using swipe
             .enableDoubletap(true)
             .defaultPage(pageCount)
-            .onPageChange(onPageScrollListener) //.onTap(onTapListener)
-            .enableAnnotationRendering(false) // render annotations (such as comments, colors or forms)
+            .onPageScroll(onPageScrollListener) //.onTap(onTapListener)
+            .swipeHorizontal(true)
+            .pageSnap(true)
+            .autoSpacing(true)
+            .pageFling(true)
             .load()
     }
 
-    private val onPageScrollListener = object: OnPageChangeListener {
-        override fun onPageChanged(page: Int, pageCount: Int) {
-            bookViewModel.update(bookId, pageCount)
+    private val onPageScrollListener = object: OnPageScrollListener {
+        override fun onPageScrolled(page: Int, positionOffset: Float) {
+            bookViewModel.update(bookId, page)
         }
     }
 }
