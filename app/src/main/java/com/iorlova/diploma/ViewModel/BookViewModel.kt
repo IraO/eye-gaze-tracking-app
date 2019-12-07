@@ -25,4 +25,8 @@ class BookViewModel(application: Application): AndroidViewModel(application) {
     fun delete(book: Book) {
         mRepository.delete(book)
     }
+
+    fun update(bookId: Int, count: Int) {
+        mRepository.update(bookId, count)
+    }
 }
