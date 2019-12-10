@@ -12,6 +12,9 @@ interface IBookDao {
     @Delete
     fun delete(book: Book)
 
+    @Query("UPDATE book_table SET page_counter = :count WHERE id =:id")
+    fun update(id: Int, count: Int)
+
     @Query("SELECT * from book_table ORDER BY id ASC")
     fun getBooks(): LiveData<List<Book>>
 

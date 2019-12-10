@@ -14,11 +14,15 @@ class BookRepository(private val bookDao: IBookDao) {
         DeleteAsyncTask(bookDao).execute(book)
     }
 
+    fun update(bookId: Int, pageCounter: Int) {
+        updateAsyncTask(bookDao, bookId, pageCounter).execute()
+    }
+
     class InsertAsyncTask(dao: IBookDao) : AsyncTask<Book, Void, Void>() {
-        private val mAsyncTaskDao: IBookDao = dao
+        private val asyncTaskDao: IBookDao = dao
 
         override fun doInBackground(vararg params: Book): Void? {
-            mAsyncTaskDao.insert(params[0])
+            asyncTaskDao.insert(params[0])
             return null
         }
     }
@@ -31,5 +35,22 @@ class BookRepository(private val bookDao: IBookDao) {
             return null
         }
     }
-    
+
+    class updateAsyncTask: AsyncTask<Book, Void, Void> {
+        val asyncTaskDao: IBookDao
+        val bookId: Int
+        val pageCounter: Int
+
+        constructor(dao: IBookDao, bId: Int, pCounter: Int) {
+            asyncTaskDao = dao
+            bookId = bId
+            pageCounter = pCounter
+        }
+
+        override fun doInBackground(vararg params: Book): Void? {
+            asyncTaskDao.update(bookId, pageCounter)
+            return null
+        }
+    }
+
 }

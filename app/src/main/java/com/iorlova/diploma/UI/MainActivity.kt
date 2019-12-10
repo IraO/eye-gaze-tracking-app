@@ -134,9 +134,18 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun loadBook(book: Book) {
-        val intent = Intent(applicationContext, ReadBookActivity::class.java)
-        intent.putExtra("BOOK_PATH", book.path)
         indeterminateBar.visibility = View.VISIBLE
+
+        val intent = if(book.path.endsWith(".pdf")) {
+            Intent(applicationContext, PdfExtractor::class.java)
+        } else {
+            Intent(applicationContext, ReadBookActivity::class.java)
+        }
+
+        intent.putExtra("BOOK_ID", book.id.toString())
+        intent.putExtra("BOOK_PATH", book.path)
+        intent.putExtra("BOOK_PAGE_COUNTER", book.page_counter)
+
         startActivity(intent)
     }
 
