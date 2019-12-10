@@ -6,9 +6,6 @@ import androidx.room.*
 @Dao
 interface IBookDao {
 
-    @Query("SELECT * from book_table ORDER BY id ASC")
-    fun getBooks(): LiveData<List<Book>>
-
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     fun insert(book: Book)
 
@@ -17,6 +14,9 @@ interface IBookDao {
 
     @Query("UPDATE book_table SET page_counter = :count WHERE id =:id")
     fun update(id: Int, count: Int)
+
+    @Query("SELECT * from book_table ORDER BY id ASC")
+    fun getBooks(): LiveData<List<Book>>
 
     @Query("SELECT * from book_table WHERE name LIKE :substring")
     fun findBooksStartWith(substring: String): List<Book>
