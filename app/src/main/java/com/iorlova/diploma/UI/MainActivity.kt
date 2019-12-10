@@ -26,6 +26,7 @@ import com.jaiselrahman.filepicker.activity.FilePickerActivity
 import com.jaiselrahman.filepicker.config.Configurations
 import com.jaiselrahman.filepicker.model.MediaFile
 import kotlinx.android.synthetic.main.activity_main.*
+import org.apache.commons.codec.digest.DigestUtils
 
 class MainActivity : AppCompatActivity() {
 
@@ -67,18 +68,16 @@ class MainActivity : AppCompatActivity() {
         recyclerView.layoutManager = LinearLayoutManager(this)
 
         bookViewModel = ViewModelProviders.of(this).get(BookViewModel::class.java)
-        bookViewModel.allBooks.observe(this, Observer { books ->
+        bookViewModel.books.observe(this, Observer { books ->
             books!!.let { adapter.setBooks(it) }
         })
 
         recyclerView.addOnItemTouchListener(
-            RecyclerItemListener(
-                this,
-                recyclerView,
+            RecyclerItemListener(this, recyclerView,
                 object : RecyclerItemListener.RecyclerTouchListener {
                     override
                     fun onClickItem(view: View, position: Int) {
-                        val book = bookViewModel.allBooks.value!![position]
+                        val book = bookViewModel.books.value!![position]
                         loadBook(book)
                     }
 
@@ -147,7 +146,7 @@ class MainActivity : AppCompatActivity() {
         builder.setTitle("Confirm")
         builder.setMessage("Are you sure you want to delete?")
         builder.setPositiveButton("YES") { dialog, which ->
-            val book = bookViewModel.allBooks.value!![position]
+            val book = bookViewModel.books.value!![position]
             bookViewModel.delete(book)
         }
         builder.setNegativeButton("NO") { dialog, which ->
@@ -157,18 +156,23 @@ class MainActivity : AppCompatActivity() {
         alert.show()
     }
 
+    private fun createBook(data: Intent?): Book {
+        val books: ArrayList<MediaFile> = data!!.getParcelableArrayListExtra(FilePickerActivity.MEDIA_FILES) //Always one book
+        val book = books[0]
+        val bookPath = book.path
+        val bookName: String = bookPath!!.substringAfterLast("/")
+        val bookFormat: String = bookName.substringAfterLast(".")
+        val bookChecksum: String = DigestUtils.md5Hex(book.toString())
+
+        return Book(name = bookName, format = bookFormat, path = bookPath, checksum = bookChecksum)
+    }
+
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
 
         if (requestCode == FILE_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
-            val files: ArrayList<MediaFile> = data!!.getParcelableArrayListExtra(FilePickerActivity.MEDIA_FILES)
-            val filePath = files[0].path
-            val fileName: String = filePath!!.substringAfterLast("/")
-            val fileFormat: String = fileName.substringAfterLast(".")
-            val book = Book(name = fileName, path = filePath, format = fileFormat)
-
+            val book = createBook(data)
             bookViewModel.insert(book)
-            loadBook(book)
         }
     }
 
