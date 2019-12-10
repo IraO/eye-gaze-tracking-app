@@ -27,6 +27,6 @@ class BookViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun update(bookId: Int, count: Int) {
-        mRepository.update(bookId, count)
+        bookRepository.update(bookId, count)
     }
 }

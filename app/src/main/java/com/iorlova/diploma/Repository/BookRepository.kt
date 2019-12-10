@@ -3,7 +3,7 @@ package com.iorlova.diploma.Repository
 import android.os.AsyncTask
 
 class BookRepository(private val bookDao: IBookDao) {
-    
+
     val books = bookDao.getBooks()
 
     fun insert(book: Book) {
@@ -36,16 +36,10 @@ class BookRepository(private val bookDao: IBookDao) {
         }
     }
 
-    class updateAsyncTask: AsyncTask<Book, Void, Void> {
-        val asyncTaskDao: IBookDao
-        val bookId: Int
-        val pageCounter: Int
-
-        constructor(dao: IBookDao, bId: Int, pCounter: Int) {
-            asyncTaskDao = dao
-            bookId = bId
-            pageCounter = pCounter
-        }
+    class updateAsyncTask(dao: IBookDao, bId: Int, pCounter: Int) : AsyncTask<Book, Void, Void>() {
+        private val asyncTaskDao: IBookDao = dao
+        private val bookId: Int = bId
+        private val pageCounter: Int = pCounter
 
         override fun doInBackground(vararg params: Book): Void? {
             asyncTaskDao.update(bookId, pageCounter)
