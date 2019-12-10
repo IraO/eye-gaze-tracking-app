@@ -7,22 +7,22 @@ import com.iorlova.diploma.Repository.Book
 import com.iorlova.diploma.Repository.BookDatabase
 import com.iorlova.diploma.Repository.BookRepository
 
-class BookViewModel(application: Application): AndroidViewModel(application) {
+class BookViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val mRepository: BookRepository
-    val allBooks: LiveData<List<Book>>
+    private val bookRepository: BookRepository
+    val books: LiveData<List<Book>>
 
     init {
         val booksDao = BookDatabase.getBookDatabase(application).bookDao()
-        mRepository = BookRepository(booksDao)
-        allBooks = mRepository.mAllBooks
+        bookRepository = BookRepository(booksDao)
+        books = bookRepository.books
     }
 
-    fun insert(book: Book){
-        mRepository.inset(book)
+    fun insert(book: Book) {
+        bookRepository.insert(book)
     }
 
     fun delete(book: Book) {
-        mRepository.delete(book)
+        bookRepository.delete(book)
     }
 }
