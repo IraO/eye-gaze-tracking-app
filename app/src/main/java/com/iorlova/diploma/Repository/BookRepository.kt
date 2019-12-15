@@ -1,65 +1,48 @@
 package com.iorlova.diploma.Repository
 
 import android.os.AsyncTask
-import androidx.lifecycle.LiveData
 
 class BookRepository(private val bookDao: IBookDao) {
-    
-    val mAllBooks = bookDao.getBooks()
 
-    fun getAllBooks() = mAllBooks
+    val books = bookDao.getBooks()
 
-    fun inset(book: Book) {
-        insertAsyncTask(bookDao).execute(book)
+    fun insert(book: Book) {
+        InsertAsyncTask(bookDao).execute(book)
     }
 
     fun delete(book: Book) {
-        deleteAsyncTask(bookDao).execute(book)
+        DeleteAsyncTask(bookDao).execute(book)
     }
 
     fun update(bookId: Int, pageCounter: Int) {
         updateAsyncTask(bookDao, bookId, pageCounter).execute()
     }
 
-    class insertAsyncTask: AsyncTask<Book, Void, Void> {
-        val mAsyncTaskDao: IBookDao
-
-        constructor(dao: IBookDao) {
-            mAsyncTaskDao = dao
-        }
+    class InsertAsyncTask(dao: IBookDao) : AsyncTask<Book, Void, Void>() {
+        private val asyncTaskDao: IBookDao = dao
 
         override fun doInBackground(vararg params: Book): Void? {
-            mAsyncTaskDao.insert(params[0])
+            asyncTaskDao.insert(params[0])
             return null
         }
     }
 
-    class deleteAsyncTask: AsyncTask<Book, Void, Void> {
-        val mAsyncTaskDao: IBookDao
-
-        constructor(dao: IBookDao) {
-            mAsyncTaskDao = dao
-        }
+    class DeleteAsyncTask(BookDao: IBookDao) : AsyncTask<Book, Void, Void>() {
+        private val asyncTaskDao: IBookDao = BookDao
 
         override fun doInBackground(vararg params: Book): Void? {
-            mAsyncTaskDao.delete(params[0])
+            asyncTaskDao.delete(params[0])
             return null
         }
     }
 
-    class updateAsyncTask: AsyncTask<Book, Void, Void> {
-        val mAsyncTaskDao: IBookDao
-        val bookId: Int
-        val pageCounter: Int
-
-        constructor(dao: IBookDao, bId: Int, pCounter: Int) {
-            mAsyncTaskDao = dao
-            bookId = bId
-            pageCounter = pCounter
-        }
+    class updateAsyncTask(dao: IBookDao, bId: Int, pCounter: Int) : AsyncTask<Book, Void, Void>() {
+        private val asyncTaskDao: IBookDao = dao
+        private val bookId: Int = bId
+        private val pageCounter: Int = pCounter
 
         override fun doInBackground(vararg params: Book): Void? {
-            mAsyncTaskDao.update(bookId, pageCounter)
+            asyncTaskDao.update(bookId, pageCounter)
             return null
         }
     }
