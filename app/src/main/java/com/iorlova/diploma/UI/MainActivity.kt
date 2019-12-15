@@ -170,8 +170,8 @@ class MainActivity : AppCompatActivity() {
         val books: ArrayList<MediaFile> = data!!.getParcelableArrayListExtra(FilePickerActivity.MEDIA_FILES) //Always one book
         val book = books[0]
         val bookPath = book.path
-        val bookName = bookPath!!.substringAfterLast("/")
-        val bookFormat = bookName.substringAfterLast(".")
+        val bookName = bookPath!!.substringAfterLast("/").substringBefore(".")
+        val bookFormat = bookPath.substringAfterLast(".")
         val bookChecksum = Hex.encodeHex(DigestUtils.md5(book.toString())).toString()
 
         return Book(name = bookName, format = bookFormat, path = bookPath, checksum = bookChecksum)
