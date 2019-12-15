@@ -26,6 +26,7 @@ import com.jaiselrahman.filepicker.activity.FilePickerActivity
 import com.jaiselrahman.filepicker.config.Configurations
 import com.jaiselrahman.filepicker.model.MediaFile
 import kotlinx.android.synthetic.main.activity_main.*
+import org.apache.commons.codec.binary.Hex
 import org.apache.commons.codec.digest.DigestUtils
 
 class MainActivity : AppCompatActivity() {
@@ -169,9 +170,9 @@ class MainActivity : AppCompatActivity() {
         val books: ArrayList<MediaFile> = data!!.getParcelableArrayListExtra(FilePickerActivity.MEDIA_FILES) //Always one book
         val book = books[0]
         val bookPath = book.path
-        val bookName: String = bookPath!!.substringAfterLast("/")
-        val bookFormat: String = bookName.substringAfterLast(".")
-        val bookChecksum: String = DigestUtils.md5Hex(book.toString())
+        val bookName = bookPath!!.substringAfterLast("/")
+        val bookFormat = bookName.substringAfterLast(".")
+        val bookChecksum = Hex.encodeHex(DigestUtils.md5(book.toString())).toString()
 
         return Book(name = bookName, format = bookFormat, path = bookPath, checksum = bookChecksum)
     }
