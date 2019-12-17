@@ -12,7 +12,7 @@ data class Book(
     val id: Int = 0,
     val name: String = "",
     val format: String = "",
-    val path: String = "",
+    val uri: String = "",
     val page_counter: Int = 0,
     val checksum: String = ""
 )
