@@ -25,8 +25,6 @@ import com.iorlova.diploma.R
 import com.iorlova.diploma.Repository.Book
 import com.iorlova.diploma.ViewModel.BookViewModel
 import kotlinx.android.synthetic.main.activity_main.*
-import org.apache.commons.codec.binary.Hex
-import org.apache.commons.codec.digest.DigestUtils
 
 class MainActivity : AppCompatActivity() {
 
@@ -177,9 +175,8 @@ class MainActivity : AppCompatActivity() {
         val uri = bookUri.toString()
         val name = getName(bookUri)
         val format = name.substringAfterLast(".")
-        val checksum = Hex.encodeHex(DigestUtils.md5(uri)).toString()
 
-        return Book(name = name, format = format, uri = uri, checksum = checksum)
+        return Book(name = name, format = format, uri = uri)
     }
 
 }
