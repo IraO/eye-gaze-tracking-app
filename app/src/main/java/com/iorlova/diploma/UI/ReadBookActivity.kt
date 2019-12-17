@@ -16,11 +16,13 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.ViewModelProviders
 import androidx.viewpager.widget.ViewPager
 import com.iorlova.diploma.EyeDetection.OpenCVCamera
 import com.iorlova.diploma.R
 import com.iorlova.diploma.UI.PageSplitter.PageSplitter
 import com.iorlova.diploma.UI.PageSplitter.TextPagerAdapter
+import com.iorlova.diploma.ViewModel.BookViewModel
 import com.rtfparserkit.converter.text.StringTextConverter
 import com.rtfparserkit.parser.RtfStreamSource
 import org.opencv.android.BaseLoaderCallback
@@ -50,6 +52,9 @@ class ReadBookActivity : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewL
     private lateinit var loader: BaseLoaderCallback
     private lateinit var pagesView: ViewPager
 
+    private lateinit var bookViewModel: BookViewModel
+    var bookId: Int = 0
+
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
         if (hasFocus) hideSystemUI()
@@ -74,6 +79,7 @@ class ReadBookActivity : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewL
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_read_book)
+        bookViewModel = ViewModelProviders.of(this).get(BookViewModel::class.java)
 
         pagesView = findViewById(R.id.pages)
         val display = windowManager.defaultDisplay
@@ -86,8 +92,10 @@ class ReadBookActivity : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewL
         val textPaint = TextPaint()
         textPaint.textSize = resources.getDimension(R.dimen.text_size)
 
+        bookId = intent.getStringExtra("BOOK_ID").toInt()
         val bookUri = Uri.parse(intent.getStringExtra("BOOK_URI"))
         val bookFormat = intent.getStringExtra("BOOK_FORMAT")
+        val pageCount = intent.getIntExtra("BOOK_PAGE_COUNTER", 0)
         var text = readFile(bookUri)
 
         if (text != null) {
@@ -110,6 +118,19 @@ class ReadBookActivity : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewL
             val intent = Intent(applicationContext, MainActivity::class.java)
             startActivity(intent)
         }
+        pagesView.currentItem = pageCount
+
+        pagesView.addOnPageChangeListener(object : ViewPager.OnPageChangeListener {
+
+            override fun onPageScrollStateChanged(state: Int) {}
+
+            override fun onPageScrolled(position: Int, positionOffset: Float, positionOffsetPixels: Int) {
+            }
+
+            override fun onPageSelected(position: Int) {
+                bookViewModel.update(bookId, position)
+            }
+        })
 
         cameraBridgeViewBase = findViewById(R.id.cameraViewBook)
         cameraBridgeViewBase.visibility = SurfaceView.INVISIBLE
@@ -231,7 +252,6 @@ class ReadBookActivity : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewL
     override fun onCameraViewStarted(width: Int, height: Int) {
         mGray = Mat(width, height, CvType.CV_8UC4)
         mRgba = Mat(width, height, CvType.CV_8UC4)
-
     }
 
     override fun onCameraViewStopped() {
