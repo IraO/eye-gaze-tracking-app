@@ -20,36 +20,22 @@ import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.iorlova.diploma.R
-import com.iorlova.diploma.Repository.Book
 import com.iorlova.diploma.ViewModel.BookViewModel
-import com.jaiselrahman.filepicker.activity.FilePickerActivity
-import com.jaiselrahman.filepicker.config.Configurations
-import com.jaiselrahman.filepicker.model.MediaFile
 import kotlinx.android.synthetic.main.activity_main.*
-import org.apache.commons.codec.binary.Hex
-import org.apache.commons.codec.digest.DigestUtils
 
 class MainActivity : AppCompatActivity() {
 
     companion object {
         internal const val REQUEST_PERMISSION = 1
-        internal const val FILE_REQUEST_CODE = 1
+        internal const val OPEN_DOCUMENT_REQUEST_CODE = 1
     }
 
     private lateinit var bookViewModel: BookViewModel
 
     override fun onStart() {
         super.onStart()
-        if (ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
-                REQUEST_PERMISSION
-            )
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), REQUEST_PERMISSION)
         }
     }
 
@@ -69,9 +55,7 @@ class MainActivity : AppCompatActivity() {
         recyclerView.layoutManager = LinearLayoutManager(this)
 
         bookViewModel = ViewModelProviders.of(this).get(BookViewModel::class.java)
-        bookViewModel.books.observe(this, Observer { books ->
-            books!!.let { adapter.setBooks(it) }
-        })
+        bookViewModel.books.observe(this, Observer { books -> books!!.let { adapter.setBooks(it) } })
 
         recyclerView.addOnItemTouchListener(
             RecyclerItemListener(this, recyclerView,
@@ -79,7 +63,11 @@ class MainActivity : AppCompatActivity() {
                     override
                     fun onClickItem(view: View, position: Int) {
                         val book = bookViewModel.books.value!![position]
-                        loadBook(book)
+                        indeterminateBar.visibility = View.VISIBLE
+
+                        val intent = BookCoordinator.createIntentByBookFormat(book.format, applicationContext)
+                        BookCoordinator.putExtrasToIntent(intent, book)
+                        BookCoordinator.loadBook(this@MainActivity, intent)
                     }
 
                     override
@@ -97,22 +85,18 @@ class MainActivity : AppCompatActivity() {
                             //deprecated in API 26
                             vibrator.vibrate(500)
                         }
-                        removeBook(position)
+                        BookCoordinator.removeBook(position, bookViewModel, this@MainActivity)
                     }
                 })
         )
         fab.setOnClickListener {
-            val intent = Intent(this, FilePickerActivity::class.java)
-            intent.putExtra(FilePickerActivity.CONFIGS, Configurations.Builder()
-                            .setSuffixes("rtf", "pdf", "txt")
-                            .setSingleChoiceMode(true)
-                            .setShowFiles(true)
-                            .setShowImages(false)
-                            .setShowVideos(false)
-                            .setShowAudios(false)
-                            .build()
-            )
-            startActivityForResult(intent, FILE_REQUEST_CODE)
+            val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                type = "*/*"
+                val extraMimeTypes = arrayOf("application/pdf", "text/rtf", "text/plain")
+                putExtra(Intent.EXTRA_MIME_TYPES, extraMimeTypes)
+                addCategory(Intent.CATEGORY_OPENABLE)
+            }
+            startActivityForResult(intent, OPEN_DOCUMENT_REQUEST_CODE)
         }
     }
 
@@ -134,55 +118,15 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun loadBook(book: Book) {
-        indeterminateBar.visibility = View.VISIBLE
+    override fun onActivityResult(requestCode: Int, resultCode: Int, intent: Intent?) {
+        super.onActivityResult(requestCode, resultCode, intent)
 
-        val intent = if(book.path.endsWith(".pdf")) {
-            Intent(applicationContext, PdfExtractor::class.java)
-        } else {
-            Intent(applicationContext, ReadBookActivity::class.java)
-        }
+        if (requestCode == OPEN_DOCUMENT_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
+            intent?.data?.also { bookUri ->
+                val book = BookFactory.createBook(bookUri, contentResolver)
+                bookViewModel.insert(book)
+            }
 
-        intent.putExtra("BOOK_ID", book.id.toString())
-        intent.putExtra("BOOK_PATH", book.path)
-        intent.putExtra("BOOK_PAGE_COUNTER", book.page_counter)
-
-        startActivity(intent)
-    }
-
-    fun removeBook(position: Int) {
-        val builder = android.app.AlertDialog.Builder(this@MainActivity)
-
-        builder.setTitle("Confirm")
-        builder.setMessage("Are you sure you want to delete?")
-        builder.setPositiveButton("YES") { dialog, which ->
-            val book = bookViewModel.books.value!![position]
-            bookViewModel.delete(book)
-        }
-        builder.setNegativeButton("NO") { dialog, which ->
-            dialog.dismiss()
-        }
-        val alert = builder.create()
-        alert.show()
-    }
-
-    private fun createBook(data: Intent?): Book {
-        val books: ArrayList<MediaFile> = data!!.getParcelableArrayListExtra(FilePickerActivity.MEDIA_FILES) //Always one book
-        val book = books[0]
-        val bookPath = book.path
-        val bookName = bookPath!!.substringAfterLast("/").substringBefore(".")
-        val bookFormat = bookPath.substringAfterLast(".")
-        val bookChecksum = Hex.encodeHex(DigestUtils.md5(book.toString())).toString()
-
-        return Book(name = bookName, format = bookFormat, path = bookPath, checksum = bookChecksum)
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-
-        if (requestCode == FILE_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
-            val book = createBook(data)
-            bookViewModel.insert(book)
         }
     }
 
