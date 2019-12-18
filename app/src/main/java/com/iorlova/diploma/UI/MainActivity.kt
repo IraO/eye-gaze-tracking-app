@@ -5,12 +5,10 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.VibrationEffect
 import android.os.Vibrator
-import android.provider.OpenableColumns
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
@@ -22,7 +20,6 @@ import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.iorlova.diploma.R
-import com.iorlova.diploma.Repository.Book
 import com.iorlova.diploma.ViewModel.BookViewModel
 import kotlinx.android.synthetic.main.activity_main.*
 
@@ -66,7 +63,11 @@ class MainActivity : AppCompatActivity() {
                     override
                     fun onClickItem(view: View, position: Int) {
                         val book = bookViewModel.books.value!![position]
-                        loadBook(book)
+                        indeterminateBar.visibility = View.VISIBLE
+
+                        val intent = BookCoordinator.createIntentByBookFormat(book.format, applicationContext)
+                        BookCoordinator.putExtrasToIntent(intent, book)
+                        BookCoordinator.loadBook(this@MainActivity, intent)
                     }
 
                     override
@@ -84,7 +85,7 @@ class MainActivity : AppCompatActivity() {
                             //deprecated in API 26
                             vibrator.vibrate(500)
                         }
-                        removeBook(position)
+                        BookCoordinator.removeBook(position, bookViewModel, this@MainActivity)
                     }
                 })
         )
@@ -117,66 +118,16 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun loadBook(book: Book) {
-        indeterminateBar.visibility = View.VISIBLE
-
-        val intent = if (book.format == BookFormat.PDF.format) {
-            Intent(applicationContext, PdfExtractor::class.java)
-        } else {
-            Intent(applicationContext, ReadBookActivity::class.java)
-        }
-
-        intent.putExtra("BOOK_ID", book.id.toString())
-        intent.putExtra("BOOK_URI", book.uri)
-        intent.putExtra("BOOK_FORMAT", book.format)
-        intent.putExtra("BOOK_PAGE_COUNTER", book.page_counter)
-
-        startActivity(intent)
-    }
-
-    fun removeBook(position: Int) {
-        val builder = android.app.AlertDialog.Builder(this@MainActivity)
-
-        builder.setTitle("Confirm")
-        builder.setMessage("Are you sure you want to delete?")
-        builder.setPositiveButton("YES") { dialog, which ->
-            val book = bookViewModel.books.value!![position]
-            bookViewModel.delete(book)
-        }
-        builder.setNegativeButton("NO") { dialog, which ->
-            dialog.dismiss()
-        }
-        val alert = builder.create()
-        alert.show()
-    }
-
     override fun onActivityResult(requestCode: Int, resultCode: Int, intent: Intent?) {
         super.onActivityResult(requestCode, resultCode, intent)
 
         if (requestCode == OPEN_DOCUMENT_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
             intent?.data?.also { bookUri ->
-                val book = createBook(bookUri)
+                val book = BookFactory.createBook(bookUri, contentResolver)
                 bookViewModel.insert(book)
             }
 
         }
-    }
-
-    private fun getName(bookUri: Uri): String {
-        val cursor = contentResolver.query(bookUri, null, null, null, null)
-        val nameIndex = cursor!!.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-        cursor.moveToFirst()
-        val bookName = cursor.getString(nameIndex)
-        cursor.close()
-        return bookName
-    }
-
-    private fun createBook(bookUri: Uri): Book {
-        val uri = bookUri.toString()
-        val name = getName(bookUri)
-        val format = name.substringAfterLast(".")
-
-        return Book(name = name, format = format, uri = uri)
     }
 
 }

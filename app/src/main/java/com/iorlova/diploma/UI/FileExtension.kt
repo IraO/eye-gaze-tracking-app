@@ -6,6 +6,12 @@ import android.os.Environment
 import java.io.File
 import java.io.InputStream
 
+enum class BookFormat(val format: String) {
+    TXT("txt"),
+    RTF("rtf"),
+    PDF("pdf")
+}
+
 fun createNewFile(bookUri: Uri, contentResolver: ContentResolver): File {
     val file = File(Environment.getExternalStorageDirectory().toString() + "/" + File.separator + "tmpBook")
     val bookInputStream = contentResolver.openInputStream(bookUri)
@@ -22,3 +28,4 @@ private fun File.copyInputStreamToFile(inputStream: InputStream) {
         inputStream.copyTo(fileOut)
     }
 }
+
