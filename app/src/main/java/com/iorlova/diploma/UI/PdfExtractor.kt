@@ -2,7 +2,6 @@ package com.iorlova.diploma.UI
 
 import android.net.Uri
 import android.os.Bundle
-import android.os.Environment
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProviders
@@ -10,8 +9,6 @@ import com.github.barteksc.pdfviewer.PDFView
 import com.github.barteksc.pdfviewer.listener.OnPageScrollListener
 import com.iorlova.diploma.R
 import com.iorlova.diploma.ViewModel.BookViewModel
-import java.io.File
-import java.io.InputStream
 
 class PdfExtractor : AppCompatActivity() {
     private lateinit var bookViewModel: BookViewModel
@@ -45,9 +42,11 @@ class PdfExtractor : AppCompatActivity() {
         bookViewModel = ViewModelProviders.of(this).get(BookViewModel::class.java)
 
         bookId = intent.getStringExtra("BOOK_ID").toInt()
-        val pdfView: PDFView = findViewById(R.id.pdfView)
-        val file = createTemporaryFile()
+        val bookUri = Uri.parse(intent.getStringExtra("BOOK_URI"))
         val bookPageCounter = intent.getIntExtra("BOOK_PAGE_COUNTER", 0)
+
+        val pdfView: PDFView = findViewById(R.id.pdfView)
+        val file = createNewFile(bookUri, contentResolver)
 
         pdfView.fromFile(file)
             .enableSwipe(true)
@@ -59,23 +58,6 @@ class PdfExtractor : AppCompatActivity() {
             .autoSpacing(true)
             .pageFling(true)
             .load()
-    }
-
-    private fun File.copyInputStreamToFile(inputStream: InputStream) {
-        this.outputStream().use { fileOut ->
-            inputStream.copyTo(fileOut)
-        }
-    }
-
-    private fun createTemporaryFile(): File {
-        val bookUri = Uri.parse(intent.getStringExtra("BOOK_URI"))
-        val file = File(Environment.getExternalStorageDirectory().toString() + "/" + File.separator + "tmpBook")
-        val bookInputStream = contentResolver.openInputStream(bookUri)
-
-        file.createNewFile()
-        file.copyInputStreamToFile(bookInputStream!!)
-        file.deleteOnExit()
-        return file
     }
 
 }

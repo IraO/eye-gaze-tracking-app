@@ -7,7 +7,6 @@ import android.content.pm.PackageManager
 import android.graphics.Point
 import android.net.Uri
 import android.os.Bundle
-import android.os.Environment
 import android.text.TextPaint
 import android.util.Log
 import android.view.SurfaceView
@@ -179,29 +178,13 @@ class ReadBookActivity : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewL
         return text
     }
 
-    private fun File.copyInputStreamToFile(inputStream: InputStream) {
-        this.outputStream().use { fileOut ->
-            inputStream.copyTo(fileOut)
-        }
-    }
-
-    private fun createTemporaryFile(bookUri: Uri): File {
-        val file = File(Environment.getExternalStorageDirectory().toString() + "/" + File.separator + "tmpBook")
-        val bookInputStream = contentResolver.openInputStream(bookUri)
-
-        file.createNewFile()
-        file.copyInputStreamToFile(bookInputStream!!)
-        file.deleteOnExit()
-        return file
-    }
-
     private fun readFile(bookUri: Uri): String? {
         val TAG = "PAGE_SPLITTER"
         var line: String? = null
 
         try {
 
-            val file = createTemporaryFile(bookUri)
+            val file = createNewFile(bookUri, contentResolver)
             val fileInputStream = FileInputStream(file)
 
             val inputStreamReader = InputStreamReader(fileInputStream)
