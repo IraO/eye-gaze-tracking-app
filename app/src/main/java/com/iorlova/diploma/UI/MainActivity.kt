@@ -3,6 +3,7 @@ package com.iorlova.diploma.UI
 import android.Manifest
 import android.app.Activity
 import android.content.Context
+import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -14,6 +15,10 @@ import android.provider.OpenableColumns
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.widget.EditText
+import android.widget.RadioButton
+import android.widget.RadioGroup
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -26,6 +31,7 @@ import com.iorlova.diploma.Repository.Book
 import com.iorlova.diploma.ViewModel.BookViewModel
 import kotlinx.android.synthetic.main.activity_main.*
 
+
 class MainActivity : AppCompatActivity() {
 
     companion object {
@@ -34,6 +40,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private lateinit var bookViewModel: BookViewModel
+    private lateinit var radioText: String
 
     override fun onStart() {
         super.onStart()
@@ -58,32 +65,62 @@ class MainActivity : AppCompatActivity() {
         recyclerView.layoutManager = LinearLayoutManager(this)
 
         bookViewModel = ViewModelProviders.of(this).get(BookViewModel::class.java)
-        bookViewModel.books.observe(this, Observer { books -> books!!.let { adapter.setBooks(it) } })
-
+        bookViewModel.books.observe(this, Observer { books ->
+            books!!.let { adapter.setBooks(it) }
+        })
         recyclerView.addOnItemTouchListener(
             RecyclerItemListener(this, recyclerView,
                 object : RecyclerItemListener.RecyclerTouchListener {
                     override
                     fun onClickItem(view: View, position: Int) {
                         val book = bookViewModel.books.value!![position]
-                        loadBook(book)
+                        if (true) {
+                            val builder = AlertDialog.Builder(this@MainActivity)
+                            builder.setTitle("Reading Goal")
+                            var radio: RadioButton? = findViewById(R.id.radio_timer)
+                            var radioCount: RadioButton? = findViewById(R.id.radio_counter)
+                            val view = layoutInflater.inflate(R.layout.dialog_reading_goal, null)
+                            builder.setView(view)
+                            builder.setPositiveButton("YES") { dialog, which ->
+                                var goalId = 3
+                                var goalVal = ""
+
+                                if (radio!!.isChecked()) {
+                                    goalId = 0
+                                    val hour = findViewById<EditText>(R.id.timer_hours)
+                                    val minute = findViewById<EditText>(R.id.timer_minutes)
+                                    goalVal = hour.text.toString() + ":" + minute.text
+                                } else if (radioCount!!.isChecked()) {
+                                    goalId = 0
+                                    val counter = findViewById<EditText>(R.id.counter)
+                                    goalVal = counter.text.toString()
+                                } else {
+
+                                }
+
+                                loadBook(book, goalId, goalVal)
+                            }
+                            val alert = builder.create()
+                            alert.show()
+                        } else {
+                            loadBook(book)
+                        }
                     }
 
                     override
                     fun onLongClickItem(view: View, position: Int) {
                         val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-                        // Vibrate for 500 milliseconds
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            vibrator.vibrate(
-                                VibrationEffect.createOneShot(
-                                    500,
-                                    VibrationEffect.DEFAULT_AMPLITUDE
-                                )
-                            )
-                        } else {
-                            //deprecated in API 26
-                            vibrator.vibrate(500)
-                        }
+//                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+//                            vibrator.vibrate(
+//                                VibrationEffect.createOneShot(
+//                                    500,
+//                                    VibrationEffect.DEFAULT_AMPLITUDE
+//                                )
+//                            )
+//                        } else {
+//                            //deprecated in API 26
+//                            vibrator.vibrate(500)
+//                        }
                         removeBook(position)
                     }
                 })
@@ -117,7 +154,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun loadBook(book: Book) {
+    fun loadBook(book: Book, goal_id: Int = 3, goal_value: String? = null) {
         indeterminateBar.visibility = View.VISIBLE
 
         val intent = if (book.format == BookFormat.PDF.format) {
@@ -130,6 +167,10 @@ class MainActivity : AppCompatActivity() {
         intent.putExtra("BOOK_URI", book.uri)
         intent.putExtra("BOOK_FORMAT", book.format)
         intent.putExtra("BOOK_PAGE_COUNTER", book.page_counter)
+        val bundle = Bundle()
+        bundle.putInt("GOAL_ID", goal_id)
+        bundle.putString("GOAL_RES", goal_value)
+        intent.putExtras(bundle)
 
         startActivity(intent)
     }
