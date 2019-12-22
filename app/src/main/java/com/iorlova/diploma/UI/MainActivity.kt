@@ -91,7 +91,7 @@ class MainActivity : AppCompatActivity() {
         fab.setOnClickListener {
             val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
                 type = "*/*"
-                val extraMimeTypes = arrayOf("application/pdf", "text/rtf", "text/plain")
+                val extraMimeTypes = arrayOf("application/pdf", "application/rtf", "text/plain")
                 putExtra(Intent.EXTRA_MIME_TYPES, extraMimeTypes)
                 addCategory(Intent.CATEGORY_OPENABLE)
             }
@@ -162,9 +162,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun getName(bookUri: Uri): String {
+    private fun parseFullNameWithExtensionFormat(bookUri: Uri): String {
         val cursor = contentResolver.query(bookUri, null, null, null, null)
-        val nameIndex = cursor!!.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+        val nameIndex = cursor?.getColumnIndex(OpenableColumns.DISPLAY_NAME) ?: return bookUri.path!!.substringAfterLast("/")
         cursor.moveToFirst()
         val bookName = cursor.getString(nameIndex)
         cursor.close()
@@ -173,8 +173,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun createBook(bookUri: Uri): Book {
         val uri = bookUri.toString()
-        val name = getName(bookUri)
-        val format = name.substringAfterLast(".")
+        val fullName = parseFullNameWithExtensionFormat(bookUri)
+        val name = fullName.substringBefore(".")
+        val format = fullName.substringAfterLast(".")
 
         return Book(name = name, format = format, uri = uri)
     }
