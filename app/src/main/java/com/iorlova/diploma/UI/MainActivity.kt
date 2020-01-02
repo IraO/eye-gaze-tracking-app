@@ -5,10 +5,12 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.VibrationEffect
 import android.os.Vibrator
+import android.provider.OpenableColumns
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
@@ -22,34 +24,21 @@ import androidx.recyclerview.widget.RecyclerView
 import com.iorlova.diploma.R
 import com.iorlova.diploma.Repository.Book
 import com.iorlova.diploma.ViewModel.BookViewModel
-import com.jaiselrahman.filepicker.activity.FilePickerActivity
-import com.jaiselrahman.filepicker.config.Configurations
-import com.jaiselrahman.filepicker.model.MediaFile
 import kotlinx.android.synthetic.main.activity_main.*
-import org.apache.commons.codec.binary.Hex
-import org.apache.commons.codec.digest.DigestUtils
 
 class MainActivity : AppCompatActivity() {
 
     companion object {
         internal const val REQUEST_PERMISSION = 1
-        internal const val FILE_REQUEST_CODE = 1
+        internal const val OPEN_DOCUMENT_REQUEST_CODE = 1
     }
 
     private lateinit var bookViewModel: BookViewModel
 
     override fun onStart() {
         super.onStart()
-        if (ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
-                REQUEST_PERMISSION
-            )
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), REQUEST_PERMISSION)
         }
     }
 
@@ -69,9 +58,7 @@ class MainActivity : AppCompatActivity() {
         recyclerView.layoutManager = LinearLayoutManager(this)
 
         bookViewModel = ViewModelProviders.of(this).get(BookViewModel::class.java)
-        bookViewModel.books.observe(this, Observer { books ->
-            books!!.let { adapter.setBooks(it) }
-        })
+        bookViewModel.books.observe(this, Observer { books -> books!!.let { adapter.setBooks(it) } })
 
         recyclerView.addOnItemTouchListener(
             RecyclerItemListener(this, recyclerView,
@@ -102,17 +89,13 @@ class MainActivity : AppCompatActivity() {
                 })
         )
         fab.setOnClickListener {
-            val intent = Intent(this, FilePickerActivity::class.java)
-            intent.putExtra(FilePickerActivity.CONFIGS, Configurations.Builder()
-                            .setSuffixes("rtf", "pdf", "txt")
-                            .setSingleChoiceMode(true)
-                            .setShowFiles(true)
-                            .setShowImages(false)
-                            .setShowVideos(false)
-                            .setShowAudios(false)
-                            .build()
-            )
-            startActivityForResult(intent, FILE_REQUEST_CODE)
+            val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                type = "*/*"
+                val extraMimeTypes = arrayOf("application/pdf", "application/rtf", "text/plain")
+                putExtra(Intent.EXTRA_MIME_TYPES, extraMimeTypes)
+                addCategory(Intent.CATEGORY_OPENABLE)
+            }
+            startActivityForResult(intent, OPEN_DOCUMENT_REQUEST_CODE)
         }
     }
 
@@ -137,14 +120,15 @@ class MainActivity : AppCompatActivity() {
     fun loadBook(book: Book) {
         indeterminateBar.visibility = View.VISIBLE
 
-        val intent = if(book.path.endsWith(".pdf")) {
+        val intent = if (book.format == BookFormat.PDF.format) {
             Intent(applicationContext, PdfExtractor::class.java)
         } else {
             Intent(applicationContext, ReadBookActivity::class.java)
         }
 
         intent.putExtra("BOOK_ID", book.id.toString())
-        intent.putExtra("BOOK_PATH", book.path)
+        intent.putExtra("BOOK_URI", book.uri)
+        intent.putExtra("BOOK_FORMAT", book.format)
         intent.putExtra("BOOK_PAGE_COUNTER", book.page_counter)
 
         startActivity(intent)
@@ -166,24 +150,34 @@ class MainActivity : AppCompatActivity() {
         alert.show()
     }
 
-    private fun createBook(data: Intent?): Book {
-        val books: ArrayList<MediaFile> = data!!.getParcelableArrayListExtra(FilePickerActivity.MEDIA_FILES) //Always one book
-        val book = books[0]
-        val bookPath = book.path
-        val bookName = bookPath!!.substringAfterLast("/").substringBefore(".")
-        val bookFormat = bookPath.substringAfterLast(".")
-        val bookChecksum = Hex.encodeHex(DigestUtils.md5(book.toString())).toString()
+    override fun onActivityResult(requestCode: Int, resultCode: Int, intent: Intent?) {
+        super.onActivityResult(requestCode, resultCode, intent)
 
-        return Book(name = bookName, format = bookFormat, path = bookPath, checksum = bookChecksum)
+        if (requestCode == OPEN_DOCUMENT_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
+            intent?.data?.also { bookUri ->
+                val book = createBook(bookUri)
+                bookViewModel.insert(book)
+            }
+
+        }
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
+    private fun parseFullNameWithExtensionFormat(bookUri: Uri): String {
+        val cursor = contentResolver.query(bookUri, null, null, null, null)
+        val nameIndex = cursor?.getColumnIndex(OpenableColumns.DISPLAY_NAME) ?: return bookUri.path!!.substringAfterLast("/")
+        cursor.moveToFirst()
+        val bookName = cursor.getString(nameIndex)
+        cursor.close()
+        return bookName
+    }
 
-        if (requestCode == FILE_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
-            val book = createBook(data)
-            bookViewModel.insert(book)
-        }
+    private fun createBook(bookUri: Uri): Book {
+        val uri = bookUri.toString()
+        val fullName = parseFullNameWithExtensionFormat(bookUri)
+        val name = fullName.substringBefore(".")
+        val format = fullName.substringAfterLast(".")
+
+        return Book(name = name, format = format, uri = uri)
     }
 
 }

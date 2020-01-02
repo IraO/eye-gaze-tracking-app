@@ -5,14 +5,13 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import org.jetbrains.annotations.NotNull
 
-@Entity(tableName = "book_table", indices = [Index(value = ["checksum"], unique = true)])
+@Entity(indices = [Index(value = ["name", "format"], unique = true)])
 data class Book(
     @NotNull
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
     val name: String = "",
     val format: String = "",
-    val path: String = "",
-    val page_counter: Int = 0,
-    val checksum: String = ""
+    val uri: String = "",
+    val page_counter: Int = 0
 )

@@ -5,7 +5,9 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Point
+import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
 import android.text.TextPaint
 import android.util.Log
 import android.view.SurfaceView
@@ -77,6 +79,7 @@ class ReadBookActivity : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewL
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_read_book)
+        bookViewModel = ViewModelProviders.of(this).get(BookViewModel::class.java)
 
         pagesView = findViewById(R.id.pages)
         val display = windowManager.defaultDisplay
@@ -89,16 +92,14 @@ class ReadBookActivity : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewL
         val textPaint = TextPaint()
         textPaint.textSize = resources.getDimension(R.dimen.text_size)
 
-        val intent: Intent = intent
-        val bookPath = intent.getStringExtra("BOOK_PATH")
-        val pageCount = intent.getIntExtra("BOOK_PAGE_COUNTER", 0)
         bookId = intent.getStringExtra("BOOK_ID").toInt()
-
-        bookViewModel = ViewModelProviders.of(this).get(BookViewModel::class.java)
-        var text = readFile(bookPath)
+        val bookUri = Uri.parse(intent.getStringExtra("BOOK_URI"))
+        val bookFormat = intent.getStringExtra("BOOK_FORMAT")
+        val pageCount = intent.getIntExtra("BOOK_PAGE_COUNTER", 0)
+        var text = readFile(bookUri)
 
         if (text != null) {
-            if (bookPath.endsWith(".rtf")) {
+            if (bookFormat == BookFormat.RTF.format) {
                 text = extractRTF(text)
             }
 
@@ -178,13 +179,30 @@ class ReadBookActivity : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewL
         return text
     }
 
-    private fun readFile(fileName: String): String? {
+    private fun File.copyInputStreamToFile(inputStream: InputStream) {
+        this.outputStream().use { fileOut ->
+            inputStream.copyTo(fileOut)
+        }
+    }
+
+    private fun createTemporaryFile(bookUri: Uri): File {
+        val file = File(Environment.getExternalStorageDirectory().toString() + "/" + File.separator + "tmpBook")
+        val bookInputStream = contentResolver.openInputStream(bookUri)
+
+        file.createNewFile()
+        file.copyInputStreamToFile(bookInputStream!!)
+        file.deleteOnExit()
+        return file
+    }
+
+    private fun readFile(bookUri: Uri): String? {
         val TAG = "PAGE_SPLITTER"
         var line: String? = null
 
         try {
-            val fileInputStream =
-                FileInputStream(File(fileName))
+
+            val file = createTemporaryFile(bookUri)
+            val fileInputStream = FileInputStream(file)
 
             val inputStreamReader = InputStreamReader(fileInputStream)
             val bufferedReader = BufferedReader(inputStreamReader)
