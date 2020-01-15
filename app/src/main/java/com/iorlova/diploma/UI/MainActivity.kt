@@ -36,6 +36,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var bookViewModel: BookViewModel
     private lateinit var radioText: String
 
+    private lateinit var enableGoalItem: MenuItem
+
     override fun onStart() {
         super.onStart()
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
@@ -68,7 +70,7 @@ class MainActivity : AppCompatActivity() {
                     override
                     fun onClickItem(view: View, position: Int) {
                         val book = bookViewModel.books.value!![position]
-                        if (true) {
+                        if (enableGoalItem.isChecked) {
                             val view = layoutInflater.inflate(R.layout.dialog_reading_goal, null)
                             val builder = AlertDialog.Builder(this@MainActivity)
                             builder.setTitle("Reading Goal")
@@ -144,6 +146,8 @@ class MainActivity : AppCompatActivity() {
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         // Inflate the menu; this adds items to the action bar if it is present.
         menuInflater.inflate(R.menu.menu_main, menu)
+        enableGoalItem = menu.findItem(R.id.action_enable_reading_goal)
+        enableGoalItem.isChecked = true
         return true
     }
 
@@ -151,11 +155,16 @@ class MainActivity : AppCompatActivity() {
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.raw.
-        return if (item.itemId == R.id.action_test_eye_detection) {
-            startActivity(Intent(this, TestEyeDetection::class.java))
-            true
-        } else {
-            super.onOptionsItemSelected(item)
+        return when {
+            item.itemId == R.id.action_test_eye_detection -> {
+                startActivity(Intent(this, TestEyeDetection::class.java))
+                true
+            }
+            item.itemId == R.id.action_enable_reading_goal -> {
+                enableGoalItem.isChecked = !enableGoalItem.isChecked
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
         }
     }
 
