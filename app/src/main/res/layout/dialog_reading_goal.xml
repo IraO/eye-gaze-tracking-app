@@ -17,7 +17,8 @@
             <RadioButton android:id="@+id/radio_timer"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Set timer: "/>
+                android:text="Set timer: "
+                android:checked="true"/>
             <EditText
                 android:id="@+id/timer_hours"
                 android:layout_width="wrap_content"
@@ -59,7 +60,5 @@
             android:layout_height="wrap_content"
             android:text="None"/>
     </RadioGroup>
-
-
 
 </RelativeLayout>

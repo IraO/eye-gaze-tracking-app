@@ -2,22 +2,16 @@ package com.iorlova.diploma.UI
 
 import android.Manifest
 import android.app.Activity
-import android.content.Context
-import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
-import android.os.VibrationEffect
-import android.os.Vibrator
 import android.provider.OpenableColumns
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.EditText
 import android.widget.RadioButton
-import android.widget.RadioGroup
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -75,27 +69,50 @@ class MainActivity : AppCompatActivity() {
                     fun onClickItem(view: View, position: Int) {
                         val book = bookViewModel.books.value!![position]
                         if (true) {
+                            val view = layoutInflater.inflate(R.layout.dialog_reading_goal, null)
                             val builder = AlertDialog.Builder(this@MainActivity)
                             builder.setTitle("Reading Goal")
-                            var radio: RadioButton? = findViewById(R.id.radio_timer)
-                            var radioCount: RadioButton? = findViewById(R.id.radio_counter)
-                            val view = layoutInflater.inflate(R.layout.dialog_reading_goal, null)
                             builder.setView(view)
+
+                            val radioTimer: RadioButton = view.findViewById(R.id.radio_timer)
+                            val radioCount: RadioButton = view.findViewById(R.id.radio_counter)
+                            val radioNone: RadioButton = view.findViewById(R.id.radio_none)
+
+                            radioTimer.setOnClickListener {
+                                radioTimer.isChecked = true
+                                radioCount.isChecked = false
+                                radioNone.isChecked = false
+                            }
+                            radioCount.setOnClickListener {
+                                radioTimer.isChecked = false
+                                radioCount.isChecked = true
+                                radioNone.isChecked = false
+                            }
+                            radioNone.setOnClickListener {
+                                radioTimer.isChecked = false
+                                radioCount.isChecked = false
+                                radioNone.isChecked = true
+                            }
+
                             builder.setPositiveButton("YES") { dialog, which ->
-                                var goalId = 3
-                                var goalVal = ""
-
-                                if (radio!!.isChecked()) {
-                                    goalId = 0
-                                    val hour = findViewById<EditText>(R.id.timer_hours)
-                                    val minute = findViewById<EditText>(R.id.timer_minutes)
-                                    goalVal = hour.text.toString() + ":" + minute.text
-                                } else if (radioCount!!.isChecked()) {
-                                    goalId = 0
-                                    val counter = findViewById<EditText>(R.id.counter)
-                                    goalVal = counter.text.toString()
-                                } else {
-
+                                var goalId: Int
+                                var goalVal: String
+                                when {
+                                    radioTimer.isChecked -> {
+                                        goalId = 0
+                                        val hour = view.findViewById<EditText>(R.id.timer_hours)
+                                        val minute = view.findViewById<EditText>(R.id.timer_minutes)
+                                        goalVal = hour.text.toString() + ":" + minute.text
+                                    }
+                                    radioCount.isChecked -> {
+                                        goalId = 1
+                                        val counter = view.findViewById<EditText>(R.id.counter)
+                                        goalVal = counter.text.toString()
+                                    }
+                                    else -> {
+                                        goalId = -1
+                                        goalVal = ""
+                                    }
                                 }
 
                                 loadBook(book, goalId, goalVal)
@@ -109,18 +126,6 @@ class MainActivity : AppCompatActivity() {
 
                     override
                     fun onLongClickItem(view: View, position: Int) {
-                        val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-//                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-//                            vibrator.vibrate(
-//                                VibrationEffect.createOneShot(
-//                                    500,
-//                                    VibrationEffect.DEFAULT_AMPLITUDE
-//                                )
-//                            )
-//                        } else {
-//                            //deprecated in API 26
-//                            vibrator.vibrate(500)
-//                        }
                         removeBook(position)
                     }
                 })
@@ -154,7 +159,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun loadBook(book: Book, goal_id: Int = 3, goal_value: String? = null) {
+    fun loadBook(book: Book, goal_id: Int = -1, goal_value: String = "") {
         indeterminateBar.visibility = View.VISIBLE
 
         val intent = if (book.format == BookFormat.PDF.format) {
@@ -169,7 +174,7 @@ class MainActivity : AppCompatActivity() {
         intent.putExtra("BOOK_PAGE_COUNTER", book.page_counter)
         val bundle = Bundle()
         bundle.putInt("GOAL_ID", goal_id)
-        bundle.putString("GOAL_RES", goal_value)
+        bundle.putString("GOAL_VAL", goal_value)
         intent.putExtras(bundle)
 
         startActivity(intent)
