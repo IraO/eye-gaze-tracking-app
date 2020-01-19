@@ -2,18 +2,17 @@ package com.iorlova.diploma.UI
 
 import android.Manifest
 import android.app.Activity
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
-import android.os.VibrationEffect
-import android.os.Vibrator
 import android.provider.OpenableColumns
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.widget.EditText
+import android.widget.RadioButton
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -26,6 +25,7 @@ import com.iorlova.diploma.Repository.Book
 import com.iorlova.diploma.ViewModel.BookViewModel
 import kotlinx.android.synthetic.main.activity_main.*
 
+
 class MainActivity : AppCompatActivity() {
 
     companion object {
@@ -34,6 +34,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private lateinit var bookViewModel: BookViewModel
+    private lateinit var radioText: String
+
+    private lateinit var enableGoalItem: MenuItem
 
     override fun onStart() {
         super.onStart()
@@ -58,32 +61,73 @@ class MainActivity : AppCompatActivity() {
         recyclerView.layoutManager = LinearLayoutManager(this)
 
         bookViewModel = ViewModelProviders.of(this).get(BookViewModel::class.java)
-        bookViewModel.books.observe(this, Observer { books -> books!!.let { adapter.setBooks(it) } })
-
+        bookViewModel.books.observe(this, Observer { books ->
+            books!!.let { adapter.setBooks(it) }
+        })
         recyclerView.addOnItemTouchListener(
             RecyclerItemListener(this, recyclerView,
                 object : RecyclerItemListener.RecyclerTouchListener {
                     override
                     fun onClickItem(view: View, position: Int) {
                         val book = bookViewModel.books.value!![position]
-                        loadBook(book)
+                        if (enableGoalItem.isChecked) {
+                            val view = layoutInflater.inflate(R.layout.dialog_reading_goal, null)
+                            val builder = AlertDialog.Builder(this@MainActivity)
+                            builder.setTitle("Reading Goal")
+                            builder.setView(view)
+
+                            val radioTimer: RadioButton = view.findViewById(R.id.radio_timer)
+                            val radioCount: RadioButton = view.findViewById(R.id.radio_counter)
+                            val radioNone: RadioButton = view.findViewById(R.id.radio_none)
+
+                            radioTimer.setOnClickListener {
+                                radioTimer.isChecked = true
+                                radioCount.isChecked = false
+                                radioNone.isChecked = false
+                            }
+                            radioCount.setOnClickListener {
+                                radioTimer.isChecked = false
+                                radioCount.isChecked = true
+                                radioNone.isChecked = false
+                            }
+                            radioNone.setOnClickListener {
+                                radioTimer.isChecked = false
+                                radioCount.isChecked = false
+                                radioNone.isChecked = true
+                            }
+
+                            builder.setPositiveButton("YES") { dialog, which ->
+                                var goalId: Int
+                                var goalVal: String
+                                when {
+                                    radioTimer.isChecked -> {
+                                        goalId = 0
+                                        val hour = view.findViewById<EditText>(R.id.timer_hours)
+                                        val minute = view.findViewById<EditText>(R.id.timer_minutes)
+                                        goalVal = hour.text.toString() + ":" + minute.text
+                                    }
+                                    radioCount.isChecked -> {
+                                        goalId = 1
+                                        val counter = view.findViewById<EditText>(R.id.counter)
+                                        goalVal = counter.text.toString()
+                                    }
+                                    else -> {
+                                        goalId = -1
+                                        goalVal = ""
+                                    }
+                                }
+
+                                loadBook(book, goalId, goalVal)
+                            }
+                            val alert = builder.create()
+                            alert.show()
+                        } else {
+                            loadBook(book)
+                        }
                     }
 
                     override
                     fun onLongClickItem(view: View, position: Int) {
-                        val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-                        // Vibrate for 500 milliseconds
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            vibrator.vibrate(
-                                VibrationEffect.createOneShot(
-                                    500,
-                                    VibrationEffect.DEFAULT_AMPLITUDE
-                                )
-                            )
-                        } else {
-                            //deprecated in API 26
-                            vibrator.vibrate(500)
-                        }
                         removeBook(position)
                     }
                 })
@@ -102,6 +146,8 @@ class MainActivity : AppCompatActivity() {
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         // Inflate the menu; this adds items to the action bar if it is present.
         menuInflater.inflate(R.menu.menu_main, menu)
+        enableGoalItem = menu.findItem(R.id.action_enable_reading_goal)
+        enableGoalItem.isChecked = true
         return true
     }
 
@@ -109,15 +155,20 @@ class MainActivity : AppCompatActivity() {
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.raw.
-        return if (item.itemId == R.id.action_test_eye_detection) {
-            startActivity(Intent(this, TestEyeDetection::class.java))
-            true
-        } else {
-            super.onOptionsItemSelected(item)
+        return when {
+            item.itemId == R.id.action_test_eye_detection -> {
+                startActivity(Intent(this, TestEyeDetection::class.java))
+                true
+            }
+            item.itemId == R.id.action_enable_reading_goal -> {
+                enableGoalItem.isChecked = !enableGoalItem.isChecked
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
         }
     }
 
-    fun loadBook(book: Book) {
+    fun loadBook(book: Book, goal_id: Int = -1, goal_value: String = "") {
         indeterminateBar.visibility = View.VISIBLE
 
         val intent = if (book.format == BookFormat.PDF.format) {
@@ -130,6 +181,10 @@ class MainActivity : AppCompatActivity() {
         intent.putExtra("BOOK_URI", book.uri)
         intent.putExtra("BOOK_FORMAT", book.format)
         intent.putExtra("BOOK_PAGE_COUNTER", book.page_counter)
+        val bundle = Bundle()
+        bundle.putInt("GOAL_ID", goal_id)
+        bundle.putString("GOAL_VAL", goal_value)
+        intent.putExtras(bundle)
 
         startActivity(intent)
     }

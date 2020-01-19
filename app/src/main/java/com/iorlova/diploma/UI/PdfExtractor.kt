@@ -49,6 +49,9 @@ class PdfExtractor : AppCompatActivity() {
         val file = createTemporaryFile()
         val bookPageCounter = intent.getIntExtra("BOOK_PAGE_COUNTER", 0)
 
+        val goalId = intent.extras!!.getInt("GOAL_ID")
+        val goalVal = intent.extras!!.getString("GOAL_VAL")
+
         pdfView.fromFile(file)
             .enableSwipe(true)
             .enableDoubletap(true)

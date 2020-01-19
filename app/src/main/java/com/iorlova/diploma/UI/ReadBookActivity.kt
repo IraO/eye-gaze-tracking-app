@@ -96,6 +96,10 @@ class ReadBookActivity : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewL
         val bookUri = Uri.parse(intent.getStringExtra("BOOK_URI"))
         val bookFormat = intent.getStringExtra("BOOK_FORMAT")
         val pageCount = intent.getIntExtra("BOOK_PAGE_COUNTER", 0)
+
+        val goalId = intent.extras!!.getInt("GOAL_ID")
+        val goalVal = intent.extras!!.getString("GOAL_VAL")
+
         var text = readFile(bookUri)
 
         if (text != null) {
