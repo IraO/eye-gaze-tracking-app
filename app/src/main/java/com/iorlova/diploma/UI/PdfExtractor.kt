@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.os.CountDownTimer
 import android.os.Environment
 import android.view.View
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -136,7 +137,7 @@ class PdfExtractor : AppCompatActivity() {
             val timeRemaining = readingGoal!!.convertValue()
             mCountDownTimer = object: CountDownTimer(timeRemaining, interval){
                 override fun onTick(millisUntilFinished: Long) {
-                    if (millisUntilFinished in 301000L..303000L) {
+                    if (millisUntilFinished in 300000L..310000L) {
                         val builder = AlertDialog.Builder(
                             this@PdfExtractor,
                             R.style.ReadingGoalsWindow
@@ -145,6 +146,9 @@ class PdfExtractor : AppCompatActivity() {
                         builder.setView(view)
                         val minLeft = 5
                         val message = "$minLeft min left"
+
+                        val iconImage: ImageView = view.findViewById(R.id.alert_icon)
+                        iconImage.setImageResource(R.drawable.timer)
 
                         val messageText: TextView = view.findViewById(R.id.alert_message)
                         messageText.text = message

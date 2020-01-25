@@ -9,14 +9,23 @@
         android:id="@+id/layout_above"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:padding="20dp">
+        android:orientation="vertical"
+        android:paddingTop="15dp">
+
+        <ImageView
+            android:id="@+id/alert_icon"
+            android:layout_width="127dp"
+            android:layout_height="82dp"
+            android:contentDescription="timer icon"
+            android:src="@drawable/timer" />
+
         <TextView
-            android:padding="20dp"
             android:id="@+id/alert_message"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="18sp"
-            android:textColor="@color/textColor"/>
+            android:layout_gravity="center_horizontal"
+            android:textColor="@color/textColor"
+            android:textSize="18sp" />
     </LinearLayout>
 
 </RelativeLayout>
