@@ -3,8 +3,7 @@
     <color name="colorPrimary">#008577</color>
     <color name="colorPrimaryDark">#00574B</color>
     <color name="colorAccent">#D81B60</color>
-    <color name="buttonLabel">#d3d3d3</color>
+    <color name="textColor">#d3d3d3</color>
     <color name="mainBlue">#130632</color>
-
     <color name="black_overlay">#66000000</color>
 </resources>
