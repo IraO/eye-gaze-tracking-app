@@ -9,6 +9,10 @@ open class BaseReadingGoal {
         return false
     }
 
+    open fun convertValue(): Long {
+        return 0
+    }
+
     open fun alert(): String {
         return "Base class"
     }

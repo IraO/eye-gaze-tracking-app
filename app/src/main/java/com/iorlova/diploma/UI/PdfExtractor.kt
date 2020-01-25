@@ -3,6 +3,7 @@ package com.iorlova.diploma.UI
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.os.CountDownTimer
 import android.os.Environment
 import android.view.View
 import android.widget.TextView
@@ -24,6 +25,9 @@ class PdfExtractor : AppCompatActivity() {
     private lateinit var bookViewModel: BookViewModel
     private var bookId: Int = 0
     private var readingGoal: BaseReadingGoal? = null
+    private var mCountDownTimer: CountDownTimer? = null
+    private val interval = 10000L
+
     private val onPageScrollListener = OnPageScrollListener { page, _ ->
         bookViewModel.update(bookId, page)
         if (readingGoal != null && readingGoal!!.goalId == 1) {
@@ -124,5 +128,37 @@ class PdfExtractor : AppCompatActivity() {
         file.copyInputStreamToFile(bookInputStream!!)
         file.deleteOnExit()
         return file
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (readingGoal != null && readingGoal!!.goalId == 0) {
+            val timeRemaining = readingGoal!!.convertValue()
+            mCountDownTimer = object: CountDownTimer(timeRemaining, interval){
+                override fun onTick(millisUntilFinished: Long) {
+                    if (millisUntilFinished in 301000L..303000L) {
+                        val builder = AlertDialog.Builder(
+                            this@PdfExtractor,
+                            R.style.ReadingGoalsWindow
+                        )
+                        val view = layoutInflater.inflate(R.layout.dialog_reading_alert, null)
+                        builder.setView(view)
+                        val minLeft = 5
+                        val message = "$minLeft min left"
+
+                        val messageText: TextView = view.findViewById(R.id.alert_message)
+                        messageText.text = message
+                        builder.setPositiveButton("Continue") { dialog, which ->
+                        }
+                        val alert = builder.create()
+                        alert.show()
+                    }
+                }
+                override fun onFinish() {
+                    openDialog(readingGoal!!.alert())
+                }
+            }
+            mCountDownTimer!!.start()
+        }
     }
 }

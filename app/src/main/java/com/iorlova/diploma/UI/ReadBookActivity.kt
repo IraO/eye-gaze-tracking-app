@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.graphics.Point
 import android.net.Uri
 import android.os.Bundle
+import android.os.CountDownTimer
 import android.os.Environment
 import android.text.TextPaint
 import android.util.Log
@@ -60,7 +61,8 @@ class ReadBookActivity : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewL
     private lateinit var bookViewModel: BookViewModel
     var bookId: Int = 0
     private var readingGoal: BaseReadingGoal? = null
-
+    private var mCountDownTimer: CountDownTimer? = null
+    private val interval = 10000L
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
@@ -110,7 +112,6 @@ class ReadBookActivity : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewL
         when (goalId) {
             0 -> {
                 readingGoal = TimerReadingGoal(goalVal!!)
-                readingGoal!!.alert()
             }
             1 -> {
                 readingGoal = CounterReadingGoal(pageCount , goalVal!!.toInt())
@@ -308,15 +309,46 @@ class ReadBookActivity : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewL
     override fun onPause() {
         super.onPause()
         cameraBridgeViewBase.disableView()
+        if (mCountDownTimer != null) {
+            mCountDownTimer!!.cancel()
+        }
     }
 
     override fun onResume() {
         super.onResume()
-
         if (!OpenCVLoader.initDebug()) {
             Toast.makeText(applicationContext, "Can't Load OpenCV", Toast.LENGTH_SHORT).show()
         } else {
             loader.onManagerConnected(BaseLoaderCallback.SUCCESS)
+        }
+
+        if (readingGoal != null && readingGoal!!.goalId == 0) {
+            val timeRemaining = readingGoal!!.convertValue()
+            mCountDownTimer = object: CountDownTimer(timeRemaining, interval){
+                override fun onTick(millisUntilFinished: Long) {
+                    if (millisUntilFinished in 301000L..303000L) {
+                        val builder = AlertDialog.Builder(
+                            this@ReadBookActivity,
+                            R.style.ReadingGoalsWindow
+                        )
+                        val view = layoutInflater.inflate(R.layout.dialog_reading_alert, null)
+                        builder.setView(view)
+                        val minLeft = 5
+                        val message = "$minLeft min left"
+
+                        val messageText: TextView = view.findViewById(R.id.alert_message)
+                        messageText.text = message
+                        builder.setPositiveButton("Continue") { dialog, which ->
+                        }
+                        val alert = builder.create()
+                        alert.show()
+                    }
+                }
+                override fun onFinish() {
+                    openDialog(readingGoal!!.alert())
+                }
+            }
+            mCountDownTimer!!.start()
         }
     }
 

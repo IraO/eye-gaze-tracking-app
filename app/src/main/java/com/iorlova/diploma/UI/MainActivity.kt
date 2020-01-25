@@ -93,15 +93,14 @@ class MainActivity : AppCompatActivity() {
                                 radioNone.isChecked = true
                             }
 
-                            builder.setPositiveButton("YES") { dialog, which ->
+                            builder.setPositiveButton("READ") { dialog, which ->
                                 var goalId: Int
                                 var goalVal: String
                                 when {
                                     radioTimer.isChecked -> {
                                         goalId = 0
-                                        val hour = view.findViewById<EditText>(R.id.timer_hours)
                                         val minute = view.findViewById<EditText>(R.id.timer_minutes)
-                                        goalVal = hour.text.toString() + ":" + minute.text
+                                        goalVal = minute.text.toString()
                                     }
                                     radioCount.isChecked -> {
                                         goalId = 1

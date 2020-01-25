@@ -34,7 +34,7 @@
                 android:checked="true"
                 app:buttonTint="@color/textColor"/>
             <EditText
-                android:id="@+id/timer_hours"
+                android:id="@+id/timer_minutes"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textSize="13dp"
@@ -45,17 +45,9 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textSize="13dp"
-                android:textColor="@color/colorAccent"
-                android:text=":">
+                android:textColor="@color/textColor"
+                android:text="min">
             </TextView>
-            <EditText
-                android:id="@+id/timer_minutes"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textSize="13dp"
-                android:textColor="@color/colorAccent"
-                android:inputType="phone"
-                android:text="00" />
         </LinearLayout>
         <LinearLayout
             android:layout_width="wrap_content"

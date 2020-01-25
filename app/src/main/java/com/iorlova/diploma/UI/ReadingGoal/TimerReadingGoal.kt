@@ -1,15 +1,13 @@
 package com.iorlova.diploma.UI.ReadingGoal
 
-import java.util.*
-import kotlin.concurrent.timer
-
 class TimerReadingGoal(val duration: String): BaseReadingGoal() {
     override var goalId = 0
-    val startTime: String = ""
-    val finishTime = ""
 
-
+    override fun convertValue(): Long {
+        val minInMiliseconds = 60000L
+        return duration.toLong() * minInMiliseconds
+    }
     override fun alert(): String {
-        return "Read for $duration min"
+        return "read for $duration min"
     }
 }
