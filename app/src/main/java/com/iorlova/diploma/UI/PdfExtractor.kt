@@ -137,7 +137,7 @@ class PdfExtractor : AppCompatActivity() {
             val timeRemaining = readingGoal!!.convertValue()
             mCountDownTimer = object: CountDownTimer(timeRemaining, interval){
                 override fun onTick(millisUntilFinished: Long) {
-                    if (millisUntilFinished in 300000L..310000L) {
+                    if (millisUntilFinished in 300000L..315000L) {
                         val builder = AlertDialog.Builder(
                             this@PdfExtractor,
                             R.style.ReadingGoalsWindow
