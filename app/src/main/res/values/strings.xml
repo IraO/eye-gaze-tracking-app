@@ -4,7 +4,7 @@
     <string name="action_enable_reading_mode">Enable reading mode</string>
     <string name="action_eye_detection">Test Eye detection</string>
     <string name="title_activity_add_book">AddBookActivity</string>
-    <string name="hint_word">Word…</string>
+    <string name="hint_word">Add Book</string>
     <string name="button_save">Save</string>
     <string name="invalid_path">Invalid path</string>
     <string name="invalid_format">Invalid format</string>

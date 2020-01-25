@@ -1,13 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:textColor="@color/textColor"
+        android:textSize="20dp"
+        android:layout_marginTop="10dp"
+        android:text="READING GOALS" />
+
     <RadioGroup
         android:id="@+id/radio_group"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:layout_marginTop="40dp"
+        android:layout_marginLeft="20dp">
 
         <LinearLayout
             android:id="@+id/lin_lay"
@@ -18,17 +30,22 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Set timer: "
-                android:checked="true"/>
+                android:textColor="@color/textColor"
+                android:checked="true"
+                app:buttonTint="@color/textColor"/>
             <EditText
                 android:id="@+id/timer_hours"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textSize="13dp"
+                android:textColor="@color/colorAccent"
+                android:inputType="phone"
                 android:text="30" />
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textSize="13dp"
+                android:textColor="@color/colorAccent"
                 android:text=":">
             </TextView>
             <EditText
@@ -36,6 +53,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textSize="13dp"
+                android:textColor="@color/colorAccent"
+                android:inputType="phone"
                 android:text="00" />
         </LinearLayout>
         <LinearLayout
@@ -44,8 +63,9 @@
             <RadioButton android:id="@+id/radio_counter"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Set number of pages: ">
-            </RadioButton>
+                android:textColor="@color/textColor"
+                android:text="Set number of pages: "
+                app:buttonTint="@color/textColor"/>
             <EditText
                 android:id="@+id/counter"
                 android:layout_width="wrap_content"
@@ -53,12 +73,16 @@
                 android:layout_alignBottom="@+id/radio_counter"
                 android:layout_toRightOf="@+id/radio_counter"
                 android:textSize="15dp"
+                android:textColor="@color/colorAccent"
+                android:inputType="phone"
                 android:text="5"/>
         </LinearLayout>
         <RadioButton android:id="@+id/radio_none"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="None"/>
+            android:textColor="@color/textColor"
+            android:text="None"
+            app:buttonTint="@color/textColor"/>
     </RadioGroup>
 
 </RelativeLayout>

@@ -12,7 +12,9 @@ import android.text.TextPaint
 import android.util.Log
 import android.view.SurfaceView
 import android.view.View
+import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -22,6 +24,9 @@ import com.iorlova.diploma.EyeDetection.OpenCVCamera
 import com.iorlova.diploma.R
 import com.iorlova.diploma.UI.PageSplitter.PageSplitter
 import com.iorlova.diploma.UI.PageSplitter.TextPagerAdapter
+import com.iorlova.diploma.UI.ReadingGoal.BaseReadingGoal
+import com.iorlova.diploma.UI.ReadingGoal.CounterReadingGoal
+import com.iorlova.diploma.UI.ReadingGoal.TimerReadingGoal
 import com.iorlova.diploma.ViewModel.BookViewModel
 import com.rtfparserkit.converter.text.StringTextConverter
 import com.rtfparserkit.parser.RtfStreamSource
@@ -45,15 +50,17 @@ class ReadBookActivity : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewL
     lateinit var cameraBridgeViewBase: CameraBridgeViewBase
     lateinit var mRgba: Mat
     lateinit var mGray: Mat
-
     private val openCVCamera: OpenCVCamera = OpenCVCamera()
     private val mRelativeFaceSize = 0.2f
     private var mAbsoluteFaceSize = 0.0
     private lateinit var loader: BaseLoaderCallback
+
     private lateinit var pagesView: ViewPager
 
     private lateinit var bookViewModel: BookViewModel
     var bookId: Int = 0
+    private var readingGoal: BaseReadingGoal? = null
+
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
@@ -100,6 +107,16 @@ class ReadBookActivity : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewL
         val goalId = intent.extras!!.getInt("GOAL_ID")
         val goalVal = intent.extras!!.getString("GOAL_VAL")
 
+        when (goalId) {
+            0 -> {
+                readingGoal = TimerReadingGoal(goalVal!!)
+                readingGoal!!.alert()
+            }
+            1 -> {
+                readingGoal = CounterReadingGoal(pageCount , goalVal!!.toInt())
+            }
+        }
+
         var text = readFile(bookUri)
 
         if (text != null) {
@@ -133,6 +150,12 @@ class ReadBookActivity : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewL
 
             override fun onPageSelected(position: Int) {
                 bookViewModel.update(bookId, position)
+                if (readingGoal != null && readingGoal!!.goalId == 1) {
+                    readingGoal!!.update(position)
+                    if (readingGoal!!.isTriggered()) {
+                        openDialog(readingGoal!!.alert())
+                    }
+                }
             }
         })
 
@@ -166,6 +189,25 @@ class ReadBookActivity : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewL
                 }
             }
         }
+    }
+
+    private fun openDialog(message: String) {
+        val builder = AlertDialog.Builder(this@ReadBookActivity, R.style.ReadingGoalsWindow)
+        val view = layoutInflater.inflate(R.layout.dialog_reading_mode, null)
+        builder.setView(view)
+
+        val messageText: TextView = view.findViewById(R.id.reading_goal)
+        messageText.text = message
+        
+        builder.setPositiveButton("Finish") {dialog, which ->
+            val intent = Intent(applicationContext, MainActivity::class.java)
+            startActivity(intent)
+        }
+        builder.setNegativeButton("Continue") { dialog, which ->
+            readingGoal!!.goalId = -1
+        }
+        val alert = builder.create()
+        alert.show()
     }
 
     private fun extractRTF(textRTF: String): String {

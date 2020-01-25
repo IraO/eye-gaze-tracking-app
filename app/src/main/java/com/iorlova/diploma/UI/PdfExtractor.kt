@@ -1,22 +1,37 @@
 package com.iorlova.diploma.UI
 
+import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
 import android.view.View
+import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProviders
 import com.github.barteksc.pdfviewer.PDFView
 import com.github.barteksc.pdfviewer.listener.OnPageScrollListener
 import com.iorlova.diploma.R
+import com.iorlova.diploma.UI.ReadingGoal.BaseReadingGoal
+import com.iorlova.diploma.UI.ReadingGoal.CounterReadingGoal
+import com.iorlova.diploma.UI.ReadingGoal.TimerReadingGoal
 import com.iorlova.diploma.ViewModel.BookViewModel
 import java.io.File
 import java.io.InputStream
 
 class PdfExtractor : AppCompatActivity() {
+
     private lateinit var bookViewModel: BookViewModel
     private var bookId: Int = 0
-    private val onPageScrollListener = OnPageScrollListener { page, _ -> bookViewModel.update(bookId, page) }
+    private var readingGoal: BaseReadingGoal? = null
+    private val onPageScrollListener = OnPageScrollListener { page, _ ->
+        bookViewModel.update(bookId, page)
+        if (readingGoal != null && readingGoal!!.goalId == 1) {
+            readingGoal!!.update(page)
+            if (readingGoal!!.isTriggered()) {
+                openDialog(readingGoal!!.alert())
+            }
+        }    }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
@@ -52,6 +67,17 @@ class PdfExtractor : AppCompatActivity() {
         val goalId = intent.extras!!.getInt("GOAL_ID")
         val goalVal = intent.extras!!.getString("GOAL_VAL")
 
+        when (goalId) {
+            0 -> {
+                readingGoal = TimerReadingGoal(goalVal!!)
+                readingGoal!!.alert()
+            }
+            1 -> {
+                readingGoal = CounterReadingGoal(bookPageCounter, goalVal!!.toInt())
+                readingGoal!!.alert()
+            }
+        }
+
         pdfView.fromFile(file)
             .enableSwipe(true)
             .enableDoubletap(true)
@@ -62,6 +88,25 @@ class PdfExtractor : AppCompatActivity() {
             .autoSpacing(true)
             .pageFling(true)
             .load()
+    }
+
+    private fun openDialog(message: String) {
+        val builder = AlertDialog.Builder(this@PdfExtractor, R.style.ReadingGoalsWindow)
+        val view = layoutInflater.inflate(R.layout.dialog_reading_mode, null)
+        builder.setView(view)
+
+        val messageText: TextView = view.findViewById(R.id.reading_goal)
+        messageText.text = message
+
+        builder.setPositiveButton("Finish") {dialog, which ->
+            val intent = Intent(applicationContext, MainActivity::class.java)
+            startActivity(intent)
+        }
+        builder.setNegativeButton("Continue") { dialog, which ->
+            readingGoal!!.goalId = -1
+        }
+        val alert = builder.create()
+        alert.show()
     }
 
     private fun File.copyInputStreamToFile(inputStream: InputStream) {
@@ -80,5 +125,4 @@ class PdfExtractor : AppCompatActivity() {
         file.deleteOnExit()
         return file
     }
-
 }
