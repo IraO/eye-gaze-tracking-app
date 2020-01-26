@@ -22,5 +22,8 @@
     <style name="ReadingGoalsWindow" parent="Theme.AppCompat.Light.Dialog.Alert">
         <item name="android:background">@color/mainBlue</item>
         <item name="android:textColor">@color/textColor</item>
+        <item name="colorAccent">@color/textColor</item>
+        <item name="android:colorAccent">@color/textColor</item>
+        <item name="buttonTint">@color/textColor</item>
     </style>
 </resources>
