@@ -76,7 +76,7 @@ class MainActivity : AppCompatActivity() {
                     fun onClickItem(view: View, position: Int) {
                         val book = bookViewModel.books.value!![position]
                         if (enableReadingGoals) {
-                            showReadinGoal(book)
+                            showReadingGoal(book)
                         } else {
                             loadBook(book)
                         }
@@ -193,19 +193,19 @@ class MainActivity : AppCompatActivity() {
         val builder = AlertDialog.Builder(this@MainActivity, R.style.ReadingGoalsWindow)
         builder.setTitle(R.string.action_settings)
 
-        val a = "Enable Reading goals"
-        val b = "Enable Eye-gaze Tracking"
+        val enableReadingLabel = "Enable Reading goals"
+        val enableEyeTrackingLabel = "Enable Eye-gaze Tracking"
 
-        val items = arrayOf(a, b)
+        val items = arrayOf(enableReadingLabel, enableEyeTrackingLabel)
         val arrayChecked = booleanArrayOf(enableReadingGoals, enableEyeTracking)
 
         builder.setMultiChoiceItems(items, arrayChecked) { _, which, isChecked ->
             arrayChecked[which] = isChecked
             val checkedItem = items[which]
-            if (checkedItem == a ) {
+            if (checkedItem == enableReadingLabel ) {
                 enableReadingGoals = isChecked
 
-            } else if (checkedItem == b) {
+            } else if (checkedItem == enableEyeTrackingLabel) {
                 enableEyeTracking = isChecked
             }
         }
@@ -221,7 +221,7 @@ class MainActivity : AppCompatActivity() {
         builder.create().show()
     }
 
-    fun showReadinGoal(book: Book) {
+    fun showReadingGoal(book: Book) {
         val view = layoutInflater.inflate(R.layout.dialog_reading_goal, null)
         val builder = AlertDialog.Builder(this@MainActivity, R.style.ReadingGoalsWindow)
         builder.setView(view)
