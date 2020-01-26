@@ -3,6 +3,7 @@ package com.iorlova.diploma.UI
 import android.Manifest
 import android.app.Activity
 import android.content.Intent
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
@@ -34,7 +35,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private lateinit var bookViewModel: BookViewModel
-    private lateinit var enableGoalItem: MenuItem
+    private var enableReadingGoals: Boolean = false
+    private var enableEyeTracking: Boolean = false
 
     override fun onStart() {
         super.onStart()
@@ -59,6 +61,11 @@ class MainActivity : AppCompatActivity() {
         recyclerView.layoutManager = LinearLayoutManager(this)
 
         bookViewModel = ViewModelProviders.of(this).get(BookViewModel::class.java)
+
+        val settings: SharedPreferences = getSharedPreferences("Settings", 0)
+        enableReadingGoals = settings.getBoolean("reading_goal", true)
+        enableEyeTracking = settings.getBoolean("eye_tracking", true)
+
         bookViewModel.books.observe(this, Observer { books ->
             books!!.let { adapter.setBooks(it) }
         })
@@ -68,55 +75,8 @@ class MainActivity : AppCompatActivity() {
                     override
                     fun onClickItem(view: View, position: Int) {
                         val book = bookViewModel.books.value!![position]
-                        if (enableGoalItem.isChecked) {
-                            val view = layoutInflater.inflate(R.layout.dialog_reading_goal, null)
-                            val builder = AlertDialog.Builder(this@MainActivity, R.style.ReadingGoalsWindow)
-                            builder.setView(view)
-
-                            val radioTimer: RadioButton = view.findViewById(R.id.radio_timer)
-                            val radioCount: RadioButton = view.findViewById(R.id.radio_counter)
-                            val radioNone: RadioButton = view.findViewById(R.id.radio_none)
-
-                            radioTimer.setOnClickListener {
-                                radioTimer.isChecked = true
-                                radioCount.isChecked = false
-                                radioNone.isChecked = false
-                            }
-                            radioCount.setOnClickListener {
-                                radioTimer.isChecked = false
-                                radioCount.isChecked = true
-                                radioNone.isChecked = false
-                            }
-                            radioNone.setOnClickListener {
-                                radioTimer.isChecked = false
-                                radioCount.isChecked = false
-                                radioNone.isChecked = true
-                            }
-
-                            builder.setPositiveButton("READ") { dialog, which ->
-                                var goalId: Int
-                                var goalVal: String
-                                when {
-                                    radioTimer.isChecked -> {
-                                        goalId = 0
-                                        val minute = view.findViewById<EditText>(R.id.timer_minutes)
-                                        goalVal = minute.text.toString()
-                                    }
-                                    radioCount.isChecked -> {
-                                        goalId = 1
-                                        val counter = view.findViewById<EditText>(R.id.counter)
-                                        goalVal = counter.text.toString()
-                                    }
-                                    else -> {
-                                        goalId = -1
-                                        goalVal = ""
-                                    }
-                                }
-
-                                loadBook(book, goalId, goalVal)
-                            }
-                            val alert = builder.create()
-                            alert.show()
+                        if (enableReadingGoals) {
+                            showReadingGoal(book)
                         } else {
                             loadBook(book)
                         }
@@ -142,8 +102,6 @@ class MainActivity : AppCompatActivity() {
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         // Inflate the menu; this adds items to the action bar if it is present.
         menuInflater.inflate(R.menu.menu_main, menu)
-        enableGoalItem = menu.findItem(R.id.action_enable_reading_goal)
-        enableGoalItem.isChecked = true
         return true
     }
 
@@ -152,12 +110,12 @@ class MainActivity : AppCompatActivity() {
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.raw.
         return when {
-            item.itemId == R.id.action_test_eye_detection -> {
-                startActivity(Intent(this, TestEyeDetection::class.java))
+            item.itemId == R.id.action_settings -> {
+                showSettingsWindow()
                 true
             }
-            item.itemId == R.id.action_enable_reading_goal -> {
-                enableGoalItem.isChecked = !enableGoalItem.isChecked
+            item.itemId == R.id.action_test_eye_detection -> {
+                startActivity(Intent(this, TestEyeDetection::class.java))
                 true
             }
             else -> super.onOptionsItemSelected(item)
@@ -231,4 +189,86 @@ class MainActivity : AppCompatActivity() {
         return Book(name = name, format = format, uri = uri)
     }
 
+    private fun showSettingsWindow() {
+        val builder = AlertDialog.Builder(this@MainActivity, R.style.ReadingGoalsWindow)
+        builder.setTitle(R.string.action_settings)
+
+        val enableReadingLabel = "Enable Reading goals"
+        val enableEyeTrackingLabel = "Enable Eye-gaze Tracking"
+
+        val items = arrayOf(enableReadingLabel, enableEyeTrackingLabel)
+        val arrayChecked = booleanArrayOf(enableReadingGoals, enableEyeTracking)
+
+        builder.setMultiChoiceItems(items, arrayChecked) { _, which, isChecked ->
+            arrayChecked[which] = isChecked
+            val checkedItem = items[which]
+            if (checkedItem == enableReadingLabel ) {
+                enableReadingGoals = isChecked
+
+            } else if (checkedItem == enableEyeTrackingLabel) {
+                enableEyeTracking = isChecked
+            }
+        }
+
+        builder.setPositiveButton("SAVE") {_, _ ->
+            val settings: SharedPreferences = getSharedPreferences("Settings", 0)
+            val editor: SharedPreferences.Editor = settings.edit()
+            editor.putBoolean("reading_goal", enableReadingGoals)
+            editor.putBoolean("eye_tracking", enableEyeTracking)
+            editor.commit()
+        }
+
+        builder.create().show()
+    }
+
+    fun showReadingGoal(book: Book) {
+        val view = layoutInflater.inflate(R.layout.dialog_reading_goal, null)
+        val builder = AlertDialog.Builder(this@MainActivity, R.style.ReadingGoalsWindow)
+        builder.setView(view)
+
+        val radioTimer: RadioButton = view.findViewById(R.id.radio_timer)
+        val radioCount: RadioButton = view.findViewById(R.id.radio_counter)
+        val radioNone: RadioButton = view.findViewById(R.id.radio_none)
+
+        radioTimer.setOnClickListener {
+            radioTimer.isChecked = true
+            radioCount.isChecked = false
+            radioNone.isChecked = false
+        }
+        radioCount.setOnClickListener {
+            radioTimer.isChecked = false
+            radioCount.isChecked = true
+            radioNone.isChecked = false
+        }
+        radioNone.setOnClickListener {
+            radioTimer.isChecked = false
+            radioCount.isChecked = false
+            radioNone.isChecked = true
+        }
+
+        builder.setPositiveButton("READ") { dialog, which ->
+            var goalId: Int
+            var goalVal: String
+            when {
+                radioTimer.isChecked -> {
+                    goalId = 0
+                    val minute = view.findViewById<EditText>(R.id.timer_minutes)
+                    goalVal = minute.text.toString()
+                }
+                radioCount.isChecked -> {
+                    goalId = 1
+                    val counter = view.findViewById<EditText>(R.id.counter)
+                    goalVal = counter.text.toString()
+                }
+                else -> {
+                    goalId = -1
+                    goalVal = ""
+                }
+            }
+
+            loadBook(book, goalId, goalVal)
+        }
+        val alert = builder.create()
+        alert.show()
+    }
 }

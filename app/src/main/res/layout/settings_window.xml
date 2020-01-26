@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <item
+        android:id="@+id/action_enable_reading_goal"
+        android:title="@string/enable_reading_goals"
+        android:checkable="true"
+        android:checked="true"/>
+
+    <item
+        android:id="@+id/action_enable_eye_gaze_tracking"
+        android:title="@string/enable_reading_goals"
+        android:checkable="true"
+        android:checked="true"/>
+</LinearLayout>
