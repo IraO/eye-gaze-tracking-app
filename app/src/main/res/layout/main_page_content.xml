@@ -16,6 +16,6 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
-        tools:listitem="@layout/book_item" />
+        tools:listitem="@layout/recyclerview_book_item" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

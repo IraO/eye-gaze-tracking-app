@@ -8,12 +8,12 @@ import android.graphics.Point
 import android.net.Uri
 import android.os.Bundle
 import android.os.CountDownTimer
-import android.os.Environment
 import android.text.TextPaint
 import android.util.Log
 import android.view.SurfaceView
 import android.view.View
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -22,6 +22,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProviders
 import androidx.viewpager.widget.ViewPager
+import com.github.barteksc.pdfviewer.listener.OnPageScrollListener
 import com.iorlova.diploma.EyeDetection.OpenCVCamera
 import com.iorlova.diploma.R
 import com.iorlova.diploma.UI.PageSplitter.PageSplitter
@@ -32,6 +33,7 @@ import com.iorlova.diploma.UI.ReadingGoal.TimerReadingGoal
 import com.iorlova.diploma.ViewModel.BookViewModel
 import com.rtfparserkit.converter.text.StringTextConverter
 import com.rtfparserkit.parser.RtfStreamSource
+import kotlinx.android.synthetic.main.pdf_page_content.*
 import org.opencv.android.BaseLoaderCallback
 import org.opencv.android.CameraBridgeViewBase
 import org.opencv.android.LoaderCallbackInterface
@@ -57,13 +59,22 @@ class ReadBookActivity : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewL
     private var mAbsoluteFaceSize = 0.0
     private lateinit var loader: BaseLoaderCallback
 
-    private lateinit var pagesView: ViewPager
-
     private lateinit var bookViewModel: BookViewModel
     var bookId: Int = 0
     private var readingGoal: BaseReadingGoal? = null
     private var mCountDownTimer: CountDownTimer? = null
     private val interval = 10000L
+
+    private val onPageScrollListener = OnPageScrollListener { page, _ ->
+        bookViewModel.update(bookId, page)
+        if (readingGoal != null && readingGoal!!.goalId == 1) {
+            readingGoal!!.update(page)
+            if (readingGoal!!.isTriggered()) {
+                openDialog(readingGoal!!.alert())
+            }
+        }    }
+
+    private lateinit var pagesView: ViewPager
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
@@ -71,17 +82,12 @@ class ReadBookActivity : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewL
     }
 
     private fun hideSystemUI() {
-        // Enables regular immersive mode.
-        // For "lean back" mode, remove SYSTEM_UI_FLAG_IMMERSIVE.
-        // Or for "sticky immersive," replace it with SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+        // Enables regular immersive mode
         window.decorView.systemUiVisibility = (
-                // Set the content to appear under the system bars so that the
-                // content doesn't resize when the system bars hide and show.
                 View.SYSTEM_UI_FLAG_IMMERSIVE
                         or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                         or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
                         or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                        // Hide the nav bar and status bar
                         or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                         or View.SYSTEM_UI_FLAG_FULLSCREEN)
     }
@@ -89,23 +95,18 @@ class ReadBookActivity : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewL
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_read_book)
-        bookViewModel = ViewModelProviders.of(this).get(BookViewModel::class.java)
 
-        pagesView = findViewById(R.id.pages)
         val display = windowManager.defaultDisplay
         val size = Point()
         display.getSize(size)
         val width = size.x
         val height = size.y
 
-        val pageSplitter = PageSplitter(width, height, 1f, 0)
-        val textPaint = TextPaint()
-        textPaint.textSize = resources.getDimension(R.dimen.text_size)
-
+        bookViewModel = ViewModelProviders.of(this).get(BookViewModel::class.java)
         bookId = intent.getStringExtra("BOOK_ID").toInt()
         val bookUri = Uri.parse(intent.getStringExtra("BOOK_URI"))
         val bookFormat = intent.getStringExtra("BOOK_FORMAT")
-        val pageCount = intent.getIntExtra("BOOK_PAGE_COUNTER", 0)
+        val bookPageCounter = intent.getIntExtra("BOOK_PAGE_COUNTER", 0)
 
         val goalId = intent.extras!!.getInt("GOAL_ID")
         val goalVal = intent.extras!!.getString("GOAL_VAL")
@@ -115,51 +116,73 @@ class ReadBookActivity : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewL
                 readingGoal = TimerReadingGoal(goalVal!!)
             }
             1 -> {
-                readingGoal = CounterReadingGoal(pageCount , goalVal!!.toInt())
+                readingGoal = CounterReadingGoal(bookPageCounter , goalVal!!.toInt())
             }
         }
 
-        var text = readFile(bookUri)
+        val mainLayout = findViewById<LinearLayout>(R.id.linearLayout1)
+        if (bookFormat == BookFormat.PDF.format) {
+            layoutInflater.inflate(R.layout.pdf_page_content, mainLayout, true)
 
-        if (text != null) {
-            if (bookFormat == BookFormat.RTF.format) {
-                text = extractRTF(text)
-            }
+            val file = createNewFile(bookUri, contentResolver)
+            pdfView.fromFile(file)
+                .enableSwipe(true)
+                .enableDoubletap(true)
+                .defaultPage(bookPageCounter)
+                .onPageScroll(onPageScrollListener)
+                .swipeHorizontal(true)
+                .pageSnap(true)
+                .autoSpacing(true)
+                .pageFling(true)
+                .load()
 
-            val textLines = text.split("\n")
-            for (line in textLines) {
-                pageSplitter.append(line, textPaint)
-            }
-            pagesView.adapter = TextPagerAdapter(supportFragmentManager, pageSplitter.pages)
         } else {
-            Toast.makeText(
-                applicationContext,
-                R.string.invalid_format,
-                Toast.LENGTH_LONG
-            ).show()
+            layoutInflater.inflate(R.layout.rtf_page_content, mainLayout, true)
 
-            val intent = Intent(applicationContext, MainActivity::class.java)
-            startActivity(intent)
-        }
-        pagesView.currentItem = pageCount
+            pagesView = findViewById(R.id.pages)
+            val pageSplitter = PageSplitter(width, height, 1f, 0)
+            val textPaint = TextPaint()
+            textPaint.textSize = resources.getDimension(R.dimen.text_size)
 
-        pagesView.addOnPageChangeListener(object : ViewPager.OnPageChangeListener {
+            var text = readFile(bookUri)
+            if (text != null) {
+                if (bookFormat == BookFormat.RTF.format) {
+                    text = extractRTF(text)
+                }
 
-            override fun onPageScrollStateChanged(state: Int) {}
+                val textLines = text.split("\n")
+                for (line in textLines) {
+                    pageSplitter.append(line, textPaint)
+                }
+                pagesView.adapter = TextPagerAdapter(supportFragmentManager, pageSplitter.pages)
+            } else {
+                Toast.makeText(
+                    applicationContext,
+                    R.string.invalid_format,
+                    Toast.LENGTH_LONG
+                ).show()
 
-            override fun onPageScrolled(position: Int, positionOffset: Float, positionOffsetPixels: Int) {
+                val intent = Intent(applicationContext, MainActivity::class.java)
+                startActivity(intent)
             }
+            pagesView.currentItem = bookPageCounter
+            pagesView.addOnPageChangeListener(object : ViewPager.OnPageChangeListener {
 
-            override fun onPageSelected(position: Int) {
-                bookViewModel.update(bookId, position)
-                if (readingGoal != null && readingGoal!!.goalId == 1) {
-                    readingGoal!!.update(position)
-                    if (readingGoal!!.isTriggered()) {
-                        openDialog(readingGoal!!.alert())
+                override fun onPageScrollStateChanged(state: Int) {}
+
+                override fun onPageScrolled(position: Int, positionOffset: Float, positionOffsetPixels: Int) {}
+
+                override fun onPageSelected(position: Int) {
+                    bookViewModel.update(bookId, position)
+                    if (readingGoal != null && readingGoal!!.goalId == 1) {
+                        readingGoal!!.update(position)
+                        if (readingGoal!!.isTriggered()) {
+                            openDialog(readingGoal!!.alert())
+                        }
                     }
                 }
-            }
-        })
+            })
+        }
 
         cameraBridgeViewBase = findViewById(R.id.cameraViewBook)
         cameraBridgeViewBase.visibility = SurfaceView.INVISIBLE
@@ -181,7 +204,6 @@ class ReadBookActivity : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewL
             override fun onManagerConnected(status: Int) {
                 when (status) {
                     LoaderCallbackInterface.SUCCESS -> {
-                        //System.loadLibrary("opencv_java3")
                         val cascadeDir: File = getDir("cascade", Context.MODE_PRIVATE)
                         val cascadeDirEye: File = getDir("cascade", Context.MODE_PRIVATE)
                         openCVCamera.initializeOpenCVDependencies(resources, cascadeDir, cascadeDirEye)
@@ -195,12 +217,12 @@ class ReadBookActivity : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewL
 
     private fun openDialog(message: String) {
         val builder = AlertDialog.Builder(this@ReadBookActivity, R.style.ReadingGoalsWindow)
-        val view = layoutInflater.inflate(R.layout.dialog_reading_mode, null)
+        val view = layoutInflater.inflate(R.layout.dialog_reading_goal_reached, null)
         builder.setView(view)
 
         val messageText: TextView = view.findViewById(R.id.reading_goal)
         messageText.text = message
-        
+
         builder.setPositiveButton("Finish") {dialog, which ->
             val intent = Intent(applicationContext, MainActivity::class.java)
             startActivity(intent)
@@ -227,29 +249,12 @@ class ReadBookActivity : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewL
         return text
     }
 
-    private fun File.copyInputStreamToFile(inputStream: InputStream) {
-        this.outputStream().use { fileOut ->
-            inputStream.copyTo(fileOut)
-        }
-    }
-
-    private fun createTemporaryFile(bookUri: Uri): File {
-        val file = File(Environment.getExternalStorageDirectory().toString() + "/" + File.separator + "tmpBook")
-        val bookInputStream = contentResolver.openInputStream(bookUri)
-
-        file.createNewFile()
-        file.copyInputStreamToFile(bookInputStream!!)
-        file.deleteOnExit()
-        return file
-    }
-
     private fun readFile(bookUri: Uri): String? {
         val TAG = "PAGE_SPLITTER"
         var line: String? = null
 
         try {
-
-            val file = createTemporaryFile(bookUri)
+            val file = createNewFile(bookUri, contentResolver)
             val fileInputStream = FileInputStream(file)
 
             val inputStreamReader = InputStreamReader(fileInputStream)

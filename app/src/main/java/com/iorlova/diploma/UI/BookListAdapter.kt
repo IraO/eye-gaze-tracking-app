@@ -17,7 +17,7 @@ class BookListAdapter internal constructor(context: Context) : androidx.recycler
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BookViewHolder {
-        val itemView = inflater.inflate(R.layout.book_item, parent, false)
+        val itemView = inflater.inflate(R.layout.recyclerview_book_item, parent, false)
         return BookViewHolder(itemView)
     }
 

@@ -19,7 +19,6 @@
 
         android:textSize="18sp"
         android:textColor="@color/mainBlue"
-        android:background="@android:color/white"
-        />
+        android:background="@android:color/white" />
 
 </LinearLayout>

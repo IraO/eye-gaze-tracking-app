@@ -5,9 +5,7 @@ import android.app.Activity
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Bundle
-import android.provider.OpenableColumns
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
@@ -69,6 +67,7 @@ class MainActivity : AppCompatActivity() {
         bookViewModel.books.observe(this, Observer { books ->
             books!!.let { adapter.setBooks(it) }
         })
+
         recyclerView.addOnItemTouchListener(
             RecyclerItemListener(this, recyclerView,
                 object : RecyclerItemListener.RecyclerTouchListener {
@@ -125,12 +124,7 @@ class MainActivity : AppCompatActivity() {
     fun loadBook(book: Book, goal_id: Int = -1, goal_value: String = "") {
         indeterminateBar.visibility = View.VISIBLE
 
-        val intent = if (book.format == BookFormat.PDF.format) {
-            Intent(applicationContext, PdfExtractor::class.java)
-        } else {
-            Intent(applicationContext, ReadBookActivity::class.java)
-        }
-
+        val intent = Intent(applicationContext, ReadBookActivity::class.java)
         intent.putExtra("BOOK_ID", book.id.toString())
         intent.putExtra("BOOK_URI", book.uri)
         intent.putExtra("BOOK_FORMAT", book.format)
@@ -164,29 +158,10 @@ class MainActivity : AppCompatActivity() {
 
         if (requestCode == OPEN_DOCUMENT_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
             intent?.data?.also { bookUri ->
-                val book = createBook(bookUri)
+                val book = BookFactory.createBook(bookUri, contentResolver)
                 bookViewModel.insert(book)
             }
-
         }
-    }
-
-    private fun parseFullNameWithExtensionFormat(bookUri: Uri): String {
-        val cursor = contentResolver.query(bookUri, null, null, null, null)
-        val nameIndex = cursor?.getColumnIndex(OpenableColumns.DISPLAY_NAME) ?: return bookUri.path!!.substringAfterLast("/")
-        cursor.moveToFirst()
-        val bookName = cursor.getString(nameIndex)
-        cursor.close()
-        return bookName
-    }
-
-    private fun createBook(bookUri: Uri): Book {
-        val uri = bookUri.toString()
-        val fullName = parseFullNameWithExtensionFormat(bookUri)
-        val name = fullName.substringBefore(".")
-        val format = fullName.substringAfterLast(".")
-
-        return Book(name = name, format = format, uri = uri)
     }
 
     private fun showSettingsWindow() {
@@ -221,8 +196,8 @@ class MainActivity : AppCompatActivity() {
         builder.create().show()
     }
 
-    fun showReadingGoal(book: Book) {
-        val view = layoutInflater.inflate(R.layout.dialog_reading_goal, null)
+    private fun showReadingGoal(book: Book) {
+        val view = layoutInflater.inflate(R.layout.dialog_choose_reading_goal, null)
         val builder = AlertDialog.Builder(this@MainActivity, R.style.ReadingGoalsWindow)
         builder.setView(view)
 

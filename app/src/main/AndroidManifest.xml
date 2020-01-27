@@ -19,9 +19,6 @@
     <uses-feature
         android:name="android.hardware.camera.front"
         android:required="false" />
-    <uses-feature
-        android:name="android.hardware.camera.front.autofocus"
-        android:required="false" />
 
     <application
         android:allowBackup="true"
@@ -31,14 +28,11 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity
-            android:name=".UI.PdfExtractor"
-            android:theme="@style/AppTheme.NoActionBar"></activity>
-        <activity
             android:name=".UI.TestEyeDetection"
             android:theme="@style/AppTheme.NoActionBar"/>
         <activity
             android:name=".UI.ReadBookActivity"
-            android:theme="@style/AppTheme.NoActionBar"></activity>
+            android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name=".UI.MainActivity"
             android:label="@string/app_name"
