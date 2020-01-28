@@ -2,15 +2,19 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:orientation="vertical" android:layout_width="match_parent"
     android:layout_height="match_parent">
-    <item
+    <CheckBox
         android:id="@+id/action_enable_reading_goal"
-        android:title="@string/enable_reading_goals"
-        android:checkable="true"
-        android:checked="true"/>
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/enable_reading_goals"
+        android:textColor="@color/textColor"
+        android:checkable="true"/>
 
-    <item
+    <CheckBox
         android:id="@+id/action_enable_eye_gaze_tracking"
-        android:title="@string/enable_reading_goals"
-        android:checkable="true"
-        android:checked="true"/>
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/enable_eye_gaze_tracking"
+        android:textColor="@color/textColor"
+        android:checkable="true"/>
 </LinearLayout>

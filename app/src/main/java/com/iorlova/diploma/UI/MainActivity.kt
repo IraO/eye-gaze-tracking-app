@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.RadioButton
 import androidx.appcompat.app.AlertDialog
@@ -167,22 +168,21 @@ class MainActivity : AppCompatActivity() {
     private fun showSettingsWindow() {
         val builder = AlertDialog.Builder(this@MainActivity, R.style.ReadingGoalsWindow)
         builder.setTitle(R.string.action_settings)
+        val view = layoutInflater.inflate(R.layout.settings_window, null)
+        builder.setView(view)
 
-        val enableReadingLabel = "Enable Reading goals"
-        val enableEyeTrackingLabel = "Enable Eye-gaze Tracking"
+        val enableReadingCheckbox: CheckBox = view.findViewById(R.id.action_enable_reading_goal)
+        enableReadingCheckbox.isChecked = enableReadingGoals
 
-        val items = arrayOf(enableReadingLabel, enableEyeTrackingLabel)
-        val arrayChecked = booleanArrayOf(enableReadingGoals, enableEyeTracking)
+        val enableEyeTrackingCheckbox: CheckBox = view.findViewById(R.id.action_enable_eye_gaze_tracking)
+        enableEyeTrackingCheckbox.isChecked = enableEyeTracking
 
-        builder.setMultiChoiceItems(items, arrayChecked) { _, which, isChecked ->
-            arrayChecked[which] = isChecked
-            val checkedItem = items[which]
-            if (checkedItem == enableReadingLabel ) {
-                enableReadingGoals = isChecked
+        enableReadingCheckbox.setOnClickListener {
+            enableReadingGoals = enableReadingCheckbox.isChecked
+        }
 
-            } else if (checkedItem == enableEyeTrackingLabel) {
-                enableEyeTracking = isChecked
-            }
+        enableEyeTrackingCheckbox.setOnClickListener {
+            enableEyeTracking = enableEyeTrackingCheckbox.isChecked
         }
 
         builder.setPositiveButton("SAVE") {_, _ ->

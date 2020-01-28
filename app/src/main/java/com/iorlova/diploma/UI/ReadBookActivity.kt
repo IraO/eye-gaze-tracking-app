@@ -4,12 +4,15 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.Configuration
+import android.graphics.Color
 import android.graphics.Point
 import android.net.Uri
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.text.TextPaint
 import android.util.Log
+import android.view.Gravity
 import android.view.SurfaceView
 import android.view.View
 import android.widget.ImageView
@@ -43,6 +46,8 @@ import org.opencv.core.CvType
 import org.opencv.core.Mat
 import java.io.*
 import java.nio.charset.StandardCharsets
+import java.util.*
+import kotlin.concurrent.schedule
 import kotlin.math.round
 
 class ReadBookActivity : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewListener2 {
@@ -365,4 +370,33 @@ class ReadBookActivity : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewL
         super.onDestroy()
         cameraBridgeViewBase.disableView()
     }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+
+        if(newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            cameraBridgeViewBase.disableView()
+            val builder = AlertDialog.Builder(this@ReadBookActivity, R.style.ReadingGoalsWindow)
+
+            val messageTextView = TextView(builder.context)
+            messageTextView.gravity = Gravity.CENTER
+            messageTextView.setTextColor(Color.WHITE)
+            messageTextView.text = "Eye Tracking is not supported in the landscape mode"
+
+            builder.setView(messageTextView)
+            val alert = builder.create()
+            alert.show()
+
+            Timer("SettingUp", false).schedule(2000) {
+                alert.dismiss()
+            }
+        }else if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
+            if (!OpenCVLoader.initDebug()) {
+                Toast.makeText(applicationContext, "Can't Load OpenCV", Toast.LENGTH_SHORT).show()
+            } else {
+                loader.onManagerConnected(BaseLoaderCallback.SUCCESS)
+            }
+        }
+    }
 }
+
