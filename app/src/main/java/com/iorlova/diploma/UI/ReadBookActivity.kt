@@ -3,6 +3,7 @@ package com.iorlova.diploma.UI
 import android.Manifest
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.Color
@@ -13,7 +14,6 @@ import android.os.CountDownTimer
 import android.text.TextPaint
 import android.util.Log
 import android.view.Gravity
-import android.view.SurfaceView
 import android.view.View
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -70,6 +70,9 @@ class ReadBookActivity : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewL
     private var mCountDownTimer: CountDownTimer? = null
     private val interval = 10000L
 
+    var countNoDetectedFacs = 0
+    var countNoDetectedEyes = 0
+
     private val onPageScrollListener = OnPageScrollListener { page, _ ->
         bookViewModel.update(bookId, page)
         if (readingGoal != null && readingGoal!!.goalId == 1) {
@@ -97,6 +100,19 @@ class ReadBookActivity : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewL
                         or View.SYSTEM_UI_FLAG_FULLSCREEN)
     }
 
+    override fun onStart() {
+        super.onStart()
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
+                MainActivity.REQUEST_PERMISSION
+            )
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
+                MainActivity.REQUEST_PERMISSION
+            )
+        }
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_read_book)
@@ -163,7 +179,7 @@ class ReadBookActivity : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewL
             } else {
                 Toast.makeText(
                     applicationContext,
-                    R.string.invalid_format,
+                    R.string.book_not_loaded,
                     Toast.LENGTH_LONG
                 ).show()
 
@@ -189,32 +205,46 @@ class ReadBookActivity : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewL
             })
         }
 
-        cameraBridgeViewBase = findViewById(R.id.cameraViewBook)
-        cameraBridgeViewBase.visibility = SurfaceView.INVISIBLE
-        cameraBridgeViewBase.setCameraIndex(CameraBridgeViewBase.CAMERA_ID_FRONT)
-        cameraBridgeViewBase.setCvCameraViewListener(this)
+        val settings: SharedPreferences = getSharedPreferences("Settings", 0)
+        if (settings.getBoolean("eye_tracking", true)) {
+            cameraBridgeViewBase = findViewById(R.id.cameraViewBook)
+            cameraBridgeViewBase.alpha = 0f
+            cameraBridgeViewBase.setCameraIndex(CameraBridgeViewBase.CAMERA_ID_FRONT)
+            cameraBridgeViewBase.setCvCameraViewListener(this)
 
-        if (ContextCompat.checkSelfPermission(
-                applicationContext,
-                Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            if (!ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.CAMERA)) {
-                ActivityCompat.requestPermissions(
-                    this,
-                    arrayOf(Manifest.permission.CAMERA),
-                    PERMISSION_REQUEST_CODE)
+            if (ContextCompat.checkSelfPermission(
+                    applicationContext,
+                    Manifest.permission.CAMERA
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                if (!ActivityCompat.shouldShowRequestPermissionRationale(
+                        this,
+                        Manifest.permission.CAMERA
+                    )
+                ) {
+                    ActivityCompat.requestPermissions(
+                        this,
+                        arrayOf(Manifest.permission.CAMERA),
+                        PERMISSION_REQUEST_CODE
+                    )
+                }
             }
-        }
 
-        loader = object : BaseLoaderCallback(this) {
-            override fun onManagerConnected(status: Int) {
-                when (status) {
-                    LoaderCallbackInterface.SUCCESS -> {
-                        val cascadeDir: File = getDir("cascade", Context.MODE_PRIVATE)
-                        val cascadeDirEye: File = getDir("cascade", Context.MODE_PRIVATE)
-                        openCVCamera.initializeOpenCVDependencies(resources, cascadeDir, cascadeDirEye)
-                        cameraBridgeViewBase.enableView()
+            loader = object : BaseLoaderCallback(this) {
+                override fun onManagerConnected(status: Int) {
+                    when (status) {
+                        LoaderCallbackInterface.SUCCESS -> {
+                            val cascadeDir: File = getDir("cascade", Context.MODE_PRIVATE)
+                            val cascadeDirEye: File = getDir("cascade", Context.MODE_PRIVATE)
+                            openCVCamera.initializeOpenCVDependencies(
+                                resources,
+                                cascadeDir,
+                                cascadeDirEye
+                            )
+                            cameraBridgeViewBase.enableView()
+                        }
+                        else -> super.onManagerConnected(status)
                     }
-                    else -> super.onManagerConnected(status)
                 }
             }
         }
@@ -298,13 +328,60 @@ class ReadBookActivity : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewL
                     mAbsoluteFaceSize = round(height * mRelativeFaceSize).toDouble()
                 }
             }
-            mRgba = openCVCamera.detectFace(mRgba, mGray)
+            val detectedFaces = openCVCamera.detectFaces(mRgba, mGray)
+
+            if (detectedFaces.isEmpty()) {
+                countNoDetectedFacs += 1
+            } else {
+                countNoDetectedFacs = 0
+            }
+            for (i in detectedFaces.indices) {
+                val detectedEyes = openCVCamera.detectEyes(detectedFaces[i])
+                val leftEye = detectedEyes[0]
+                val rightEye = detectedEyes[1]
+
+                if(leftEye.isEmpty() or rightEye.isEmpty()) {
+                    countNoDetectedEyes +=1
+                } else {
+                    mRgba = openCVCamera.mRgba
+                    openCVCamera.learnFrames++
+                    countNoDetectedFacs = 0
+                }
+            }
+            if (countNoDetectedFacs == 20 || countNoDetectedEyes == 15) {
+                this.runOnUiThread {
+                    cameraBridgeViewBase.visibility = View.GONE
+                    openAlertDialog("You've lost concentration!", R.drawable.attention)
+                }
+            }
 
             mRgba = openCVCamera.rotate(mRgba, Core.ROTATE_90_CLOCKWISE)
             mGray = openCVCamera.rotate(mGray, Core.ROTATE_90_CLOCKWISE)
-
         }
         return mRgba
+    }
+
+    private fun openAlertDialog(message: String, iconId: Int) {
+        val builder = AlertDialog.Builder(
+            this@ReadBookActivity,
+            R.style.ReadingGoalsWindow
+        )
+        val view = layoutInflater.inflate(R.layout.dialog_reading_alert, null)
+        builder.setView(view)
+
+        val iconImage: ImageView = view.findViewById(R.id.alert_icon)
+        iconImage.setImageResource(iconId)
+
+        val messageText: TextView = view.findViewById(R.id.alert_message)
+        messageText.text = message
+        builder.setPositiveButton("Continue")
+        { _, _ ->
+            countNoDetectedFacs = 0
+            countNoDetectedEyes = 0
+            cameraBridgeViewBase.visibility = View.VISIBLE
+        }
+        val alert = builder.create()
+        alert.show()
     }
 
     override fun onCameraViewStarted(width: Int, height: Int) {
@@ -319,7 +396,9 @@ class ReadBookActivity : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewL
 
     override fun onPause() {
         super.onPause()
-        cameraBridgeViewBase.disableView()
+        if (::cameraBridgeViewBase.isInitialized) {
+            cameraBridgeViewBase.disableView()
+        }
         if (mCountDownTimer != null) {
             mCountDownTimer!!.cancel()
         }
@@ -327,10 +406,12 @@ class ReadBookActivity : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewL
 
     override fun onResume() {
         super.onResume()
-        if (!OpenCVLoader.initDebug()) {
-            Toast.makeText(applicationContext, "Can't Load OpenCV", Toast.LENGTH_SHORT).show()
-        } else {
-            loader.onManagerConnected(BaseLoaderCallback.SUCCESS)
+        if (::cameraBridgeViewBase.isInitialized) {
+            if (!OpenCVLoader.initDebug()) {
+                Toast.makeText(applicationContext, "Can't Load OpenCV", Toast.LENGTH_SHORT).show()
+            } else {
+                loader.onManagerConnected(BaseLoaderCallback.SUCCESS)
+            }
         }
 
         if (readingGoal != null && readingGoal!!.goalId == 0) {
@@ -368,13 +449,14 @@ class ReadBookActivity : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewL
 
     override fun onDestroy() {
         super.onDestroy()
-        cameraBridgeViewBase.disableView()
+        if (::cameraBridgeViewBase.isInitialized) {
+            cameraBridgeViewBase.disableView()
+        }
     }
 
-    override fun onConfigurationChanged(newConfig: Configuration) {
+    override fun onConfigurationChanged(newConfig: Configuration)  {
         super.onConfigurationChanged(newConfig)
-
-        if(newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+        if(::cameraBridgeViewBase.isInitialized && newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
             cameraBridgeViewBase.disableView()
             val builder = AlertDialog.Builder(this@ReadBookActivity, R.style.ReadingGoalsWindow)
 
@@ -390,7 +472,7 @@ class ReadBookActivity : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewL
             Timer("SettingUp", false).schedule(2000) {
                 alert.dismiss()
             }
-        }else if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
+        }else if (::cameraBridgeViewBase.isInitialized && newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
             if (!OpenCVLoader.initDebug()) {
                 Toast.makeText(applicationContext, "Can't Load OpenCV", Toast.LENGTH_SHORT).show()
             } else {

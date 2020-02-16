@@ -7,9 +7,9 @@
     tools:context=".UI.TestEyeDetection">
 
     <org.opencv.android.JavaCameraView
+        android:id="@+id/cameraView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:id="@+id/cameraView"
         app:camera_id="front"
         app:show_fps="true"
         />

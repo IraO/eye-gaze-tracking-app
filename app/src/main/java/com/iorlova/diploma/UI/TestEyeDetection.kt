@@ -3,10 +3,14 @@ package com.iorlova.diploma.UI
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.os.Bundle
+import android.view.Gravity
 import android.view.SurfaceView
 import android.view.View
+import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -16,9 +20,13 @@ import org.opencv.android.BaseLoaderCallback
 import org.opencv.android.CameraBridgeViewBase
 import org.opencv.android.LoaderCallbackInterface
 import org.opencv.android.OpenCVLoader
-import org.opencv.core.*
+import org.opencv.core.Core
+import org.opencv.core.CvType
+import org.opencv.core.Mat
+import org.opencv.core.Rect
 import java.io.File
 import kotlin.math.round
+
 
 class TestEyeDetection : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewListener2 {
 
@@ -32,6 +40,10 @@ class TestEyeDetection : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewL
 
     private val mRelativeFaceSize = 0.2f
     private var mAbsoluteFaceSize = 0.0
+
+    var isDialogOn = false
+    var countNoDetectedFace = 0
+    var countNoDetectedEyes = 0
 
     private val openCVCamera: OpenCVCamera = OpenCVCamera()
 
@@ -111,14 +123,81 @@ class TestEyeDetection : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewL
                     mAbsoluteFaceSize = round(height * mRelativeFaceSize).toDouble()
                 }
             }
+            var message = ""
 
-            mRgba = openCVCamera.detectFace(mRgba, mGray)
+            val detectedFaces = openCVCamera.detectFaces(mRgba, mGray)
+
+            if (detectedFaces.isEmpty()) {
+                countNoDetectedFace += 1
+            } else {
+                countNoDetectedFace = 0
+            }
+
+            for (face in detectedFaces) {
+                openCVCamera.drawFace(face)
+
+                val detectedEyes = openCVCamera.detectEyes(face)
+                val leftEye = detectedEyes[0]
+                val rightEye = detectedEyes[1]
+
+                if(leftEye.isEmpty() or rightEye.isEmpty()) {
+                    countNoDetectedEyes +=1
+                } else {
+                    val eyeLeft = Rect(
+                        face.x + face.width / 16 + (face.width - 2 * face.width / 16) / 2,
+                        (face.y + (face.height / 4.5)).toInt(), (face.width - 2 * face.width / 16) / 2, face.height / 3
+                    )
+                    val eyeRight = Rect(
+                        face.x + face.width / 16, (face.y + (face.height / 4.5)).toInt(),
+                        (face.width - 2 * face.width / 16) / 2, face.height / 3
+                    )
+
+                    for (eye in leftEye) {
+                        openCVCamera.drawEye(eye, eyeLeft, 24)
+                    }
+                    for (eye in rightEye) {
+                        openCVCamera.drawEye(eye, eyeRight, 24)
+                    }
+
+                    mRgba = openCVCamera.mRgba
+                    openCVCamera.learnFrames++
+                    countNoDetectedEyes = 0
+                }
+            }
+            if (!isDialogOn && (countNoDetectedFace == 20 || countNoDetectedEyes == 15)) {
+                this.runOnUiThread {
+                    isDialogOn = true
+                    if (countNoDetectedFace >= 20) {
+                        message = "Can't find face"
+                    } else if (countNoDetectedEyes >= 15) {
+                        message = "Eyes are not visible"
+                    }
+                    openDialog(message)
+                }
+            }
 
             mRgba = openCVCamera.rotate(mRgba, Core.ROTATE_90_CLOCKWISE)
             mGray = openCVCamera.rotate(mGray, Core.ROTATE_90_CLOCKWISE)
-
         }
         return mRgba
+    }
+
+    private fun openDialog(message: String) {
+        val builder = AlertDialog.Builder(this@TestEyeDetection, R.style.ReadingGoalsWindow)
+
+        val messageTextView = TextView(builder.context)
+        messageTextView.gravity = Gravity.CENTER
+        messageTextView.setTextColor(Color.WHITE)
+        messageTextView.text = message
+
+        builder.setView(messageTextView)
+        builder.setPositiveButton("Continue") { dialog, which ->
+            isDialogOn = false
+            countNoDetectedFace = 0
+            countNoDetectedEyes = 0
+        }
+        val alert = builder.create()
+        alert.show()
     }
 
     override fun onCameraViewStarted(width: Int, height: Int) {

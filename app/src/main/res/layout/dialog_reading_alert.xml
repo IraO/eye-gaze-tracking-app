@@ -16,7 +16,7 @@
             android:id="@+id/alert_icon"
             android:layout_width="127dp"
             android:layout_height="82dp"
-            android:contentDescription="timer icon"/>
+            android:contentDescription="reading alert icon"/>
 
         <TextView
             android:id="@+id/alert_message"

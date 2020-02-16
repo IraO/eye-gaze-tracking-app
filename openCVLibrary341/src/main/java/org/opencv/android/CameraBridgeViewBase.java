@@ -390,51 +390,42 @@ public abstract class CameraBridgeViewBase extends SurfaceView implements Surfac
 
     private final Matrix mMatrix = new Matrix();
 
-//    private void updateMatrix(){
-//        float mw = this.getWidth();
-//        float mh = this.getHeight();
-//        float hw = this.getWidth() /2.0f;
-//        float hh = this.getHeight() / 2.0f;
-//
-//        float cw = (float) Resources.getSystem().getDisplayMetrics().widthPixels;
-//        float ch = (float) Resources.getSystem().getDisplayMetrics().heightPixels;
-//
-//        float scale = cw / mh;
-//        float scale2 = ch / mw;
-//
-//        mMatrix.preTranslate(hw, hh);
-//        if(scale2 > scale) {
-//            scale = scale2;
-//        }
-//
-//        boolean isFrontCamera = mCameraIndex == CAMERA_ID_FRONT;
-//        mMatrix.reset();
-//
-//        if (isFrontCamera) {
-//            mMatrix.preScale(-1, 1, hw, hh); //MH - this will mirror the camera
-//        }
-//
-//        mMatrix.preTranslate(hw, hh);
-//        if (isFrontCamera){
-//            mMatrix.preRotate(270);
-//        } else {
-//            mMatrix.preRotate(0);
-//        }
-//        mMatrix.preTranslate(-hw, -hh);
-//        mMatrix.preScale(scale,scale,hw,hh);
-//    }
-//
-//    @Override
-//    public void layout(int l, int t, int r, int b) {
-//        super.layout(l, t, r, b);
-//        updateMatrix();
-//    }
-//
-//    @Override
-//    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-//        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-//        updateMatrix();
-//    }
+    private void updateMatrix(){
+        float mw = this.getWidth();
+        float mh = this.getHeight();
+        float hw = this.getWidth() /2.0f;
+        float hh = this.getHeight() / 2.0f;
+
+        float cw = (float) Resources.getSystem().getDisplayMetrics().widthPixels;
+        float ch = (float) Resources.getSystem().getDisplayMetrics().heightPixels;
+
+        float scale = cw / mh;
+        float scale2 = ch / mw;
+
+        mMatrix.preTranslate(hw, hh);
+        if(scale2 > scale) {
+            scale = scale2;
+        }
+        mMatrix.reset();
+
+        mMatrix.preScale(-1, 1, hw, hh); //MH - this will mirror the camera
+        mMatrix.preTranslate(hw, hh);
+        mMatrix.preRotate(270);
+        mMatrix.preTranslate(-hw, -hh);
+        mMatrix.preScale(scale,scale,hw,hh);
+    }
+
+    @Override
+    public void layout(int l, int t, int r, int b) {
+        super.layout(l, t, r, b);
+        updateMatrix();
+    }
+
+    @Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+        updateMatrix();
+    }
 
     /**
      * This method shall be called by the subclasses when they have valid
@@ -454,28 +445,7 @@ public abstract class CameraBridgeViewBase extends SurfaceView implements Surfac
         boolean bmpValid = true;
         if (modified != null) {
             try {
-                Mat destination = new Mat();
-                Core.rotate(modified, destination, Core.ROTATE_90_COUNTERCLOCKWISE);
-
-                int width = mCacheBitmap.getWidth();
-                int height = mCacheBitmap.getHeight();
-
-                int minimum = Math.min(width, height);
-                int maximum = Math.max(width, height);
-
-                mCacheBitmap.setWidth(minimum);
-                mCacheBitmap.setHeight(maximum);
-
-                // ########
-
-                Mat resizeImage = new Mat();
-                Size sz = new Size(minimum, maximum);
-                Imgproc.resize(destination, resizeImage, sz);
-
-                // #########
-
-                Utils.matToBitmap(resizeImage, mCacheBitmap);
-                //Utils.matToBitmap(modified, mCacheBitmap);
+                Utils.matToBitmap(modified, mCacheBitmap);
             } catch(Exception e) {
                 Log.e(TAG, "Mat type: " + modified);
                 Log.e(TAG, "Bitmap type: " + mCacheBitmap.getWidth() + "*" + mCacheBitmap.getHeight());
@@ -490,8 +460,8 @@ public abstract class CameraBridgeViewBase extends SurfaceView implements Surfac
                 canvas.drawColor(0, android.graphics.PorterDuff.Mode.CLEAR);
                 if (BuildConfig.DEBUG)
                     Log.d(TAG, "mStretch value: " + mScale);
-//                int saveCount = canvas.save();
-//                canvas.setMatrix(mMatrix);
+                int saveCount = canvas.save();
+                canvas.setMatrix(mMatrix);
                 mScale = 1.5f;
 
                 if (mScale != 0) {
@@ -508,7 +478,7 @@ public abstract class CameraBridgeViewBase extends SurfaceView implements Surfac
                          (canvas.getHeight() - mCacheBitmap.getHeight()) / 2 + mCacheBitmap.getHeight()), null);
                 }
 
-//                canvas.restoreToCount(saveCount);
+                canvas.restoreToCount(saveCount);
 
                 if (mFpsMeter != null) {
                     mFpsMeter.measure();

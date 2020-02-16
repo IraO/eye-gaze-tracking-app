@@ -19,12 +19,9 @@ class OpenCVCamera {
     lateinit var mRgba: Mat
     lateinit var mGray: Mat
 
-    var learn_frames = 0
-    lateinit var templateR: Mat
-    lateinit var templateL: Mat
+    var learnFrames = 0
 
-    private val mRelativeFaceSize = 0.2f
-    private var mAbsoluteFaceSize = 0.0
+    private var mAbsoluteFaceSize = 0.3
 
     var xCenter = -1.0
     var yCenter = -1.0
@@ -69,166 +66,94 @@ class OpenCVCamera {
         }
     }
 
-    fun detectFace(rgba: Mat, gray: Mat): Mat {
+    fun rotate(matrix: Mat, rotateCode: Int): Mat {
+        val destination = Mat()
+        Core.rotate(matrix, destination, rotateCode)
+        return destination
+    }
+
+    fun detectFaces(rgba: Mat, gray: Mat): Array<Rect> {
         mRgba = rgba
         mGray = gray
 
         val absoluteFaceSize = mAbsoluteFaceSize  //Rgba.cols() * 0.2
-
         val faces = MatOfRect()
-        if (cascadeClassifier != null) {
-            cascadeClassifier.detectMultiScale(
-                mRgba, faces, 1.1, 2, 2,
-                Size(absoluteFaceSize, absoluteFaceSize), Size()
-            )
-        }
-
-        val facesArray = faces.toArray()
-        for (i in facesArray.indices) {
-            Imgproc.rectangle(
-                mRgba,
-                facesArray[i].tl(),
-                facesArray[i].br(),
-                Scalar(0.0, 255.0, 0.0, 255.0),
-                3
-            )
-            xCenter = ((facesArray[i].x + facesArray[i].width + facesArray[i].x) / 2).toDouble()
-            yCenter =
-                ((facesArray[i].y + facesArray[i].y + facesArray[i].height) / 2).toDouble()
-            val centerPoint = Point(xCenter, yCenter)
-
-            Imgproc.circle(mRgba, centerPoint, 10, Scalar(255.0, 0.0, 0.0, 255.0), 3)
-            Imgproc.putText(
-                mRgba, "[" + centerPoint.x + "," + centerPoint.y + "]",
-                Point(centerPoint.x + 20, centerPoint.y + 20),
-                Core.FONT_HERSHEY_SIMPLEX, 0.7, Scalar(255.0, 255.0, 255.0, 255.0)
-            )
-
-            val r: Rect = facesArray[i]
-            val eyeArea = Rect(
-                r.x + r.width / 8, (r.y + (r.height / 4.5)).toInt(),
-                r.width - 2 * r.width / 16, r.height / 3
-            )
-
-            val eyeRight = Rect(
-                r.x + r.width / 16, (r.y + (r.height / 4.5)).toInt(),
-                (r.width - 2 * r.width / 16) / 2, r.height / 3
-            )
-
-            val eyeLeft = Rect(
-                r.x + r.width / 16 + (r.width - 2 * r.width / 16) / 2,
-                (r.y + (r.height / 4.5)).toInt(), (r.width - 2 * r.width / 16) / 2, r.height / 3
-            )
-
-            Imgproc.rectangle(
-                mRgba,
-                eyeLeft.tl(),
-                eyeLeft.br(),
-                Scalar(255.0, 0.0, 0.0, 255.0),
-                1
-            )
-            Imgproc.rectangle(
-                mRgba,
-                eyeRight.tl(),
-                eyeRight.br(),
-                Scalar(255.0, 0.0, 0.0, 255.0),
-                1
-            )
-
-            templateL = getTemplate(eyeDetectorClassifier, eyeRight, 24)
-            templateR = getTemplate(eyeDetectorClassifier, eyeLeft, 24)
-            learn_frames++
-//          matchEye(eyeLeft, templateL, method)
-//          matchEye(eyeRight, templateR, method)
-        }
-
-        return mRgba
-}
-
-    fun rotate(matrix: Mat, rotateCode: Int): Mat {
-//      Point pivot = new Point(modified.rows() / 2, modified.cols() / 2);
-//      Mat rotationMatrix2D = Imgproc.getRotationMatrix2D(pivot, 360.0f, 1.0f);
-//      Utils.matToBitmap(rotationMatrix2D, mCacheBitmap);
-        val destination = Mat()
-        Core.rotate(matrix, destination, rotateCode)
-
-//      val resizeImage = Mat()
-//      val sz = Size(600.0, 600.0)
-//
-//      Imgproc.resize(destination, resizeImage, sz)
-        return destination
+        cascadeClassifier.detectMultiScale(
+            mRgba, faces, 1.3, 6, 2,
+            Size(absoluteFaceSize, absoluteFaceSize), Size()
+        )
+        return faces.toArray()
     }
 
-    fun getTemplate(classifier: CascadeClassifier, area: Rect, size: Int): Mat {
-        var template = Mat()
-        var mROI = mGray.submat(area)
-        val eyes = MatOfRect()
-        val iris = Point()
-        var eye_template: Rect
+    fun detectEyes(face: Rect): Array<Array<Rect>>{
+        val r: Rect = face
+        val eyeRight = Rect(
+            r.x + r.width / 16, (r.y + (r.height / 4.5)).toInt(),
+            (r.width - 2 * r.width / 16) / 2, r.height / 3
+        )
+        val eyeLeft = Rect(
+            r.x + r.width / 16 + (r.width - 2 * r.width / 16) / 2,
+            (r.y + (r.height / 4.5)).toInt(), (r.width - 2 * r.width / 16) / 2, r.height / 3
+        )
 
+        Imgproc.rectangle(mRgba, eyeLeft.tl(), eyeLeft.br(),
+            Scalar(255.0, 0.0, 0.0, 255.0), 1
+        )
+        Imgproc.rectangle(mRgba, eyeRight.tl(), eyeRight.br(),
+            Scalar(255.0, 0.0, 0.0, 255.0), 1
+        )
+
+        val leftEyeDetected = detectEye(eyeDetectorClassifier, eyeLeft)
+        val rightEyeDetected = detectEye(eyeDetectorClassifier, eyeRight)
+
+        return arrayOf(leftEyeDetected, rightEyeDetected)
+    }
+
+    private fun detectEye(classifier: CascadeClassifier, area: Rect): Array<Rect> {
+        val mROI = mGray.submat(area)
+        val eyes = MatOfRect()
         classifier.detectMultiScale(
-            mROI, eyes, 1.15, 2, Objdetect.CASCADE_FIND_BIGGEST_OBJECT
+            mROI, eyes, 1.3, 6, Objdetect.CASCADE_FIND_BIGGEST_OBJECT
                     or Objdetect.CASCADE_SCALE_IMAGE, Size(30.0, 30.0), Size()
         )
-
-        val eyesArray = eyes.toArray()
-        for (i in eyesArray.indices) {
-            val e: Rect = eyesArray[i]
-            e.x = area.x + e.x
-            e.y = area.y + e.y
-
-            val eye_only_rectangle = Rect(
-                e.tl().x.toInt(),
-                (e.tl().y + e.height * 0.4).toInt(), e.width, (e.height * 0.6).toInt()
-            )
-            mROI = mGray.submat(eye_only_rectangle)
-            val vyrez = mRgba.submat(eye_only_rectangle)
-
-
-            val mmG = Core.minMaxLoc(mROI)
-
-            Imgproc.circle(vyrez, mmG.minLoc, 2, Scalar(255.0, 255.0, 255.0, 255.0), 2)
-            iris.x = mmG.minLoc.x + eye_only_rectangle.x
-            iris.y = mmG.minLoc.y + eye_only_rectangle.y
-
-            eye_template = Rect(iris.x.toInt() - size / 2, iris.y.toInt() - size / 2, size, size)
-            Imgproc.rectangle(
-                mRgba, eye_template.tl(), eye_template.br(),
-                Scalar(255.0, 0.0, 0.0, 255.0), 2
-            )
-
-            template = (mGray.submat(eye_template)).clone()
-            return template
-        }
-        return template
+        return eyes.toArray()
     }
 
-    private fun matchEye(area: Rect, mTemplate: Mat, type: Int) {
-        var matchLocation: Point
-        val mROI: Mat = mGray.submat(area)
-        val resultCols = mROI.cols() - mTemplate.cols() + 1
-        val resultRows = mROI.rows() - mTemplate.rows() + 1
+    fun drawFace(face: Rect) {
+        Imgproc.rectangle(mRgba, face.tl(), face.br(), Scalar(0.0, 255.0, 0.0, 255.0), 3)
+        xCenter = ((face.x + face.width + face.x) / 2).toDouble()
+        yCenter = ((face.y + face.y + face.height) / 2).toDouble()
+        val centerPoint = Point(xCenter, yCenter)
 
-        if (mTemplate.cols() == 0 || mTemplate.rows() == 0) {
-            return
-        }
+        Imgproc.circle(mRgba, centerPoint, 10, Scalar(255.0, 0.0, 0.0, 255.0), 3)
+    }
 
-        val mResult = Mat(resultCols, resultRows, CvType.CV_8U)
-        val mmres = Core.minMaxLoc(mResult)
+    fun drawEye(eyesArray: Rect, area: Rect, size: Int) {
+        var mROI: Mat
+        val iris = Point()
+        var eyeTemplate: Rect
 
-        matchLocation = mmres.minLoc
-        val matchLoc_tx = Point(matchLocation.x + area.x, matchLocation.y + area.y)
-        val matchLoc_ty = Point(
-            matchLocation.x + mTemplate.cols() + area.x,
-            matchLocation.y + mTemplate.rows() + area.y
+        val e: Rect = eyesArray
+        e.x = area.x + e.x
+        e.y = area.y + e.y
+
+        val eyeOnlyRectangle = Rect(
+            e.tl().x.toInt(),
+            (e.tl().y + e.height * 0.4).toInt(), e.width, (e.height * 0.6).toInt()
         )
 
-        Imgproc.rectangle(
-            mRgba, matchLoc_tx, matchLoc_ty, Scalar(
-                255.0, 255.0, 0.0,
-                255.0
-            )
+        mROI = mGray.submat(eyeOnlyRectangle)
+        val eyeCut = mRgba.submat(eyeOnlyRectangle)
+
+        val mmG = Core.minMaxLoc(mROI)
+
+        Imgproc.circle(eyeCut, mmG.minLoc, 2, Scalar(255.0, 255.0, 255.0, 255.0), 2)
+        iris.x = mmG.minLoc.x + eyeOnlyRectangle.x
+        iris.y = mmG.minLoc.y + eyeOnlyRectangle.y
+
+        eyeTemplate = Rect(iris.x.toInt() - size / 2, iris.y.toInt() - size / 2, size, size)
+        Imgproc.rectangle(mRgba, eyeTemplate.tl(), eyeTemplate.br(),
+            Scalar(255.0, 0.0, 0.0, 255.0), 2
         )
-        val rec = Rect(matchLoc_tx, matchLoc_ty)
     }
 }
